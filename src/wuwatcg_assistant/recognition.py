@@ -28,6 +28,12 @@ class RecognitionConfig:
     confident_inliers: int = 10
     confident_inlier_ratio: float = 0.45
     confident_score_margin: float = 1.15
+    minimum_reference_span: float = 0.08
+    minimum_frame_area_ratio: float = 0.001
+    maximum_frame_area_ratio: float = 1.20
+    maximum_corner_margin_ratio: float = 0.25
+    maximum_side_ratio: float = 10.0
+    maximum_opposite_side_ratio: float = 4.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -126,7 +132,13 @@ class RecognitionEngine:
 
         best_by_card: dict[str, RecognitionCandidate] = {}
         for reference in self._index:
-            candidate = self._match_reference(reference, frame_keypoints, frame_descriptors, click)
+            candidate = self._match_reference(
+                reference,
+                frame_keypoints,
+                frame_descriptors,
+                click,
+                frame_size=(gray.shape[1], gray.shape[0]),
+            )
             if candidate is None:
                 continue
             current = best_by_card.get(candidate.card.code)
@@ -145,6 +157,7 @@ class RecognitionEngine:
         frame_keypoints: Any,
         frame_descriptors: NDArray[Any],
         click: Point,
+        frame_size: tuple[int, int],
     ) -> RecognitionCandidate | None:
         pairs = self._matcher.knnMatch(reference.descriptors, frame_descriptors, k=2)
         good = [
@@ -169,21 +182,25 @@ class RecognitionEngine:
             cv2.RANSAC,
             self.config.reprojection_threshold,
         )
-        if homography is None or mask is None:
-            return None
-
-        inliers = int(mask.ravel().sum())
-        if inliers < self.config.minimum_inliers:
-            return None
-
         width, height = reference.image_size
         corners = np.asarray(
             [[0, 0], [width - 1, 0], [width - 1, height - 1], [0, height - 1]],
             dtype=np.float32,
         ).reshape(-1, 1, 2)
-        projected = cv2.perspectiveTransform(corners, homography).reshape(4, 2)
-        if not np.isfinite(projected).all() or abs(cv2.contourArea(projected)) < 400:
+        projection = self._stable_projection(
+            homography,
+            mask,
+            corners,
+            source_points,
+            frame_points,
+            reference.image_size,
+            frame_size,
+        )
+        if projection is None:
             return None
+
+        projected, mask = projection
+        inliers = int(mask.ravel().sum())
 
         contains_click = cv2.pointPolygonTest(projected, click, False) >= 0
         inlier_ratio = inliers / len(good)
@@ -200,6 +217,67 @@ class RecognitionEngine:
             contains_click=contains_click,
             polygon=polygon,  # type: ignore[arg-type]
         )
+
+    def _stable_projection(
+        self,
+        homography: NDArray[Any] | None,
+        homography_mask: NDArray[Any] | None,
+        corners: NDArray[Any],
+        source_points: NDArray[Any],
+        frame_points: NDArray[Any],
+        reference_size: tuple[int, int],
+        frame_size: tuple[int, int],
+    ) -> tuple[NDArray[Any], NDArray[Any]] | None:
+        if homography is not None and homography_mask is not None:
+            projected = cv2.perspectiveTransform(corners, homography).reshape(4, 2)
+            if self._projection_is_supported(
+                projected,
+                homography_mask,
+                source_points,
+                reference_size,
+                frame_size,
+            ):
+                return projected, homography_mask
+
+        affine, affine_mask = cv2.estimateAffinePartial2D(
+            source_points,
+            frame_points,
+            method=cv2.RANSAC,
+            ransacReprojThreshold=self.config.reprojection_threshold,
+        )
+        if affine is None or affine_mask is None:
+            return None
+        projected = cv2.transform(corners, affine).reshape(4, 2)
+        if not self._projection_is_supported(
+            projected,
+            affine_mask,
+            source_points,
+            reference_size,
+            frame_size,
+        ):
+            return None
+        return projected, affine_mask
+
+    def _projection_is_supported(
+        self,
+        polygon: NDArray[Any],
+        mask: NDArray[Any],
+        source_points: NDArray[Any],
+        reference_size: tuple[int, int],
+        frame_size: tuple[int, int],
+    ) -> bool:
+        inlier_mask = mask.ravel().astype(bool)
+        if int(inlier_mask.sum()) < self.config.minimum_inliers:
+            return False
+        inlier_sources = source_points.reshape(-1, 2)[inlier_mask]
+        reference_width, reference_height = reference_size
+        span = np.ptp(inlier_sources, axis=0)
+        if (
+            span[0] / reference_width < self.config.minimum_reference_span
+            or span[1] / reference_height < self.config.minimum_reference_span
+        ):
+            return False
+        return is_plausible_card_polygon(polygon, frame_size, self.config)
 
     def _is_confident(self, candidates: tuple[RecognitionCandidate, ...]) -> bool:
         if not candidates:
@@ -224,6 +302,48 @@ def decode_image(path: Path) -> Image:
     if image is None:
         raise ValueError(f"Unable to decode image: {path}")
     return image
+
+
+def is_plausible_card_polygon(
+    polygon: NDArray[Any],
+    frame_size: tuple[int, int],
+    config: RecognitionConfig | None = None,
+) -> bool:
+    """Reject degenerate projections before they are used as a card outline."""
+
+    options = config or RecognitionConfig()
+    points = np.asarray(polygon, dtype=np.float32).reshape(4, 2)
+    if not np.isfinite(points).all() or not cv2.isContourConvex(points):
+        return False
+
+    frame_width, frame_height = frame_size
+    frame_area = frame_width * frame_height
+    area_ratio = abs(cv2.contourArea(points)) / frame_area
+    if not options.minimum_frame_area_ratio <= area_ratio <= options.maximum_frame_area_ratio:
+        return False
+
+    margin_x = frame_width * options.maximum_corner_margin_ratio
+    margin_y = frame_height * options.maximum_corner_margin_ratio
+    if (
+        points[:, 0].min() < -margin_x
+        or points[:, 0].max() > frame_width + margin_x
+        or points[:, 1].min() < -margin_y
+        or points[:, 1].max() > frame_height + margin_y
+    ):
+        return False
+
+    sides = np.linalg.norm(points - np.roll(points, -1, axis=0), axis=1)
+    shortest_side = float(sides.min())
+    if shortest_side < 10 or float(sides.max()) / shortest_side > options.maximum_side_ratio:
+        return False
+
+    for first, opposite in ((0, 2), (1, 3)):
+        ratio = max(float(sides[first]), float(sides[opposite])) / min(
+            float(sides[first]), float(sides[opposite])
+        )
+        if ratio > options.maximum_opposite_side_ratio:
+            return False
+    return True
 
 
 def _resize_to_max_edge(image: Image, max_edge: int) -> Image:

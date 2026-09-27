@@ -4,7 +4,11 @@ import cv2
 import numpy as np
 
 from wuwatcg_assistant.catalog import CardCatalog
-from wuwatcg_assistant.recognition import RecognitionEngine, decode_image
+from wuwatcg_assistant.recognition import (
+    RecognitionEngine,
+    decode_image,
+    is_plausible_card_polygon,
+)
 
 ASSET_DIRECTORY = Path(__file__).resolve().parents[1] / "assets" / "cards"
 
@@ -48,3 +52,15 @@ def test_click_selects_visible_card_when_two_cards_overlap() -> None:
     assert left_result.primary.card.code == left_card.code
     assert right_result.primary is not None
     assert right_result.primary.card.code == right_card.code
+
+
+def test_rejects_skinny_projection_with_corners_far_outside_frame() -> None:
+    unstable = np.asarray([[720, -900], [742, -900], [565, 2_400], [545, 2_400]], dtype=np.float32)
+
+    assert not is_plausible_card_polygon(unstable, frame_size=(1414, 1836))
+
+
+def test_accepts_convex_card_projection() -> None:
+    card = np.asarray([[560, 140], [950, 180], [885, 710], [515, 665]], dtype=np.float32)
+
+    assert is_plausible_card_polygon(card, frame_size=(1414, 1836))
