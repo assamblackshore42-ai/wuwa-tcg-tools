@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol
 
 import cv2
 import numpy as np
@@ -23,6 +24,29 @@ class VideoInputDevice:
     device_id: bytes
     name: str
     is_default: bool
+
+
+class CameraFormatLike(Protocol):
+    def resolution(self) -> Any: ...
+
+    def maxFrameRate(self) -> float: ...  # noqa: N802
+
+
+def select_highest_quality_format[CameraFormatT: CameraFormatLike](
+    formats: Iterable[CameraFormatT],
+) -> CameraFormatT | None:
+    """Select the largest advertised frame size, then the highest frame rate."""
+
+    return max(
+        formats,
+        key=lambda camera_format: (
+            camera_format.resolution().width() * camera_format.resolution().height(),
+            camera_format.maxFrameRate(),
+            camera_format.resolution().width(),
+            camera_format.resolution().height(),
+        ),
+        default=None,
+    )
 
 
 class CameraController(QObject):
@@ -70,6 +94,9 @@ class CameraController(QObject):
         camera = QCamera(camera_device, self)
         camera.errorOccurred.connect(self._on_camera_error)
         camera.activeChanged.connect(self._on_active_changed)
+        camera_format = select_highest_quality_format(camera_device.videoFormats())
+        if camera_format is not None:
+            camera.setCameraFormat(camera_format)
         self._camera = camera
         self._active_device_id = bytes(camera_device.id().data())
         self._capture_session.setCamera(camera)
@@ -111,6 +138,15 @@ class CameraController(QObject):
         if not active or self._camera is None:
             return
         device = self._camera.cameraDevice()
+        camera_format = self._camera.cameraFormat()
+        resolution = camera_format.resolution()
+        if resolution.isValid():
+            fps = camera_format.maxFrameRate()
+            self.camera_opened.emit(
+                f"{device.description()} を使用中 "
+                f"({resolution.width()}x{resolution.height()} / {fps:g}fps)"
+            )
+            return
         self.camera_opened.emit(f"{device.description()} を使用中")
 
 
