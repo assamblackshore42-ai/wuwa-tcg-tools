@@ -1,9 +1,13 @@
+from pathlib import Path
+from unittest.mock import Mock
+
 from PySide6.QtCore import QPoint, QPointF, Qt
 from PySide6.QtGui import QColor, QPixmap, QResizeEvent
 from PySide6.QtTest import QSignalSpy, QTest
 from PySide6.QtWidgets import QSizePolicy, QSplitter
 
-from wuwatcg_assistant.catalog import CardCatalog
+from wuwatcg_assistant.catalog import Card, CardCatalog
+from wuwatcg_assistant.recognition import RecognitionCandidate
 from wuwatcg_assistant.ui import MainWindow, ScalableImageLabel, VideoWidget
 
 
@@ -76,3 +80,37 @@ def test_result_pane_is_flexible_and_resizable(qtbot: object) -> None:
     assert result_pane.maximumWidth() > 10_000
     assert result_pane.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Expanding
     assert splitter.isCollapsible(1) is False
+
+
+def test_completed_recognition_hides_input_selection_but_keeps_result_outline(
+    qtbot: object,
+) -> None:
+    window = MainWindow(CardCatalog(cards=()), build_index=False)
+    polygon = ((10.0, 20.0), (110.0, 20.0), (110.0, 170.0), (10.0, 170.0))
+    candidate = RecognitionCandidate(
+        card=Card(code="TEST-001", name="テスト", card_type="character", variants=()),
+        reference_path=Path("missing-test-image.png"),
+        score=1.0,
+        good_matches=12,
+        inliers=10,
+        inlier_ratio=0.8,
+        contains_click=True,
+        polygon=polygon,
+    )
+    window._candidates = (candidate,)
+    selection_spy = Mock()
+    window._video.set_selection = selection_spy
+
+    window._show_candidate(0)
+
+    selection_spy.assert_called_once_with(None, polygon)
+
+
+def test_failed_recognition_hides_input_selection(qtbot: object) -> None:
+    window = MainWindow(CardCatalog(cards=()), build_index=False)
+    selection_spy = Mock()
+    window._video.set_selection = selection_spy
+
+    window._on_recognition_failed(window._request_id, "failure")
+
+    selection_spy.assert_called_once_with(None)

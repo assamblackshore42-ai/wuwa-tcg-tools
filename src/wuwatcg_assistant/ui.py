@@ -528,6 +528,7 @@ class MainWindow(QMainWindow):
 
     def _on_recognition_failed(self, request_id: int, message: str) -> None:
         if request_id == self._request_id:
+            self._video.set_selection(None)
             self._status.setText(f"認識処理に失敗しました: {message}")
 
     def _show_candidate(self, row: int) -> None:
@@ -544,7 +545,7 @@ class MainWindow(QMainWindow):
             f"一致特徴点: {candidate.inliers}/{candidate.good_matches}\n"
             f"推定確信度: {candidate.confidence:.0%}"
         )
-        self._video.set_selection(self._last_click, candidate.polygon, self._last_region)
+        self._video.set_selection(None, candidate.polygon)
 
     def _clear_result(self) -> None:
         self._candidates = ()
@@ -552,7 +553,7 @@ class MainWindow(QMainWindow):
         self._card_image.clear_image("認識結果なし")
         self._card_name.setText("カードをクリックしてください")
         self._card_meta.clear()
-        self._video.set_selection(self._last_click, analysis_region=self._last_region)
+        self._video.set_selection(None)
 
     @override
     def closeEvent(self, event: QCloseEvent) -> None:
