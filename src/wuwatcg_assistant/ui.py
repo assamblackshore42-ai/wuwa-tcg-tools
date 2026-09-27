@@ -31,7 +31,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .camera import CameraWorker
+from .camera import CameraController
 from .catalog import CardCatalog
 from .recognition import (
     Image,
@@ -269,9 +269,6 @@ class MainWindow(QMainWindow):
     def __init__(
         self,
         catalog: CardCatalog,
-        camera_index: int = 0,
-        camera_width: int = 1280,
-        camera_height: int = 720,
         build_index: bool = True,
     ) -> None:
         super().__init__()
@@ -279,9 +276,7 @@ class MainWindow(QMainWindow):
         self.resize(1280, 800)
 
         self._engine = RecognitionEngine(catalog)
-        self._camera_width = camera_width
-        self._camera_height = camera_height
-        self._camera_worker: CameraWorker | None = None
+        self._camera = CameraController()
         self._index_worker: _IndexWorker | None = None
         self._latest_frame: Image | None = None
         self._last_click: Point | None = None
@@ -294,9 +289,6 @@ class MainWindow(QMainWindow):
 
         self._video = VideoWidget()
         self._camera_selector = QComboBox()
-        for index in range(10):
-            self._camera_selector.addItem(f"カメラ {index}", index)
-        self._camera_selector.setCurrentIndex(max(0, min(camera_index, 9)))
         self._camera_button = QPushButton("カメラ開始")
         self._camera_button.clicked.connect(self._toggle_camera)
         self._status = QLabel("カード画像を準備しています…")
@@ -316,6 +308,11 @@ class MainWindow(QMainWindow):
         self._candidate_list.currentRowChanged.connect(self._show_candidate)
 
         self._build_layout()
+        self._camera.frame_ready.connect(self._on_frame)
+        self._camera.camera_error.connect(self._on_camera_error)
+        self._camera.camera_opened.connect(self._status.setText)
+        self._camera.devices_changed.connect(self._refresh_camera_devices)
+        self._refresh_camera_devices()
         self._video.source_clicked.connect(self._recognize_at)
         self._video.source_region_selected.connect(self._recognize_region)
 
@@ -376,35 +373,53 @@ class MainWindow(QMainWindow):
         self._status.setText(f"カード画像の準備に失敗しました: {message}")
 
     def _toggle_camera(self) -> None:
-        if self._camera_worker is not None and self._camera_worker.isRunning():
+        if self._camera.is_active:
             self._stop_camera()
             return
 
-        index = int(self._camera_selector.currentData())
-        self._camera_worker = CameraWorker(index, self._camera_width, self._camera_height)
-        self._camera_worker.frame_ready.connect(self._on_frame)
-        self._camera_worker.camera_error.connect(self._on_camera_error)
-        self._camera_worker.camera_opened.connect(self._status.setText)
-        self._camera_worker.finished.connect(self._camera_finished)
+        device_id = self._camera_selector.currentData()
+        if not isinstance(device_id, bytes):
+            self._status.setText("Windows上で利用可能なカメラが見つかりません。")
+            return
         self._camera_selector.setEnabled(False)
         self._camera_button.setText("カメラ停止")
-        self._status.setText(f"カメラ {index} に接続しています…")
-        self._camera_worker.start()
+        self._status.setText(f"{self._camera_selector.currentText()} に接続しています…")
+        self._camera.start(device_id)
 
     def _stop_camera(self) -> None:
-        if self._camera_worker is not None:
-            self._camera_worker.stop()
-        self._camera_worker = None
-        self._camera_selector.setEnabled(True)
+        self._camera.stop()
+        self._camera_selector.setEnabled(self._camera_selector.count() > 0)
         self._camera_button.setText("カメラ開始")
         self._status.setText("カメラを停止しました。")
 
-    def _camera_finished(self) -> None:
-        self._camera_selector.setEnabled(True)
-        self._camera_button.setText("カメラ開始")
+    def _refresh_camera_devices(self) -> None:
+        previous_id = self._camera.active_device_id or self._camera_selector.currentData()
+        devices = self._camera.video_inputs()
+        self._camera_selector.blockSignals(True)
+        self._camera_selector.clear()
+        for device in devices:
+            self._camera_selector.addItem(device.name, device.device_id)
+            self._camera_selector.setItemData(
+                self._camera_selector.count() - 1,
+                device.device_id.decode("utf-8", errors="replace"),
+                Qt.ItemDataRole.ToolTipRole,
+            )
+
+        selected_index = next(
+            (index for index, device in enumerate(devices) if device.device_id == previous_id),
+            next((index for index, device in enumerate(devices) if device.is_default), 0),
+        )
+        if devices:
+            self._camera_selector.setCurrentIndex(selected_index)
+        self._camera_selector.blockSignals(False)
+        self._camera_selector.setEnabled(bool(devices) and not self._camera.is_active)
+        self._camera_button.setEnabled(bool(devices))
 
     def _on_camera_error(self, message: str) -> None:
         self._status.setText(message)
+        self._camera.stop()
+        self._camera_selector.setEnabled(self._camera_selector.count() > 0)
+        self._camera_button.setText("カメラ開始")
 
     def _on_frame(self, frame: Image) -> None:
         self._latest_frame = frame.copy()
