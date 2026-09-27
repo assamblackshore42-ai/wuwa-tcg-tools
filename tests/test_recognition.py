@@ -47,11 +47,24 @@ def test_click_selects_visible_card_when_two_cards_overlap() -> None:
 
     left_result = engine.recognize(frame, (width * 0.25, height * 0.5))
     right_result = engine.recognize(frame, (width * 1.25, height * 0.5))
+    left_region = (
+        (0.0, 0.0),
+        (float(offset), 0.0),
+        (float(offset), float(height)),
+        (0.0, float(height)),
+    )
+    region_result = engine.recognize(
+        frame,
+        (offset * 0.5, height * 0.5),
+        region=left_region,
+    )
 
     assert left_result.primary is not None
     assert left_result.primary.card.code == left_card.code
     assert right_result.primary is not None
     assert right_result.primary.card.code == right_card.code
+    assert region_result.primary is not None
+    assert region_result.primary.card.code == left_card.code
 
 
 def test_rejects_skinny_projection_with_corners_far_outside_frame() -> None:

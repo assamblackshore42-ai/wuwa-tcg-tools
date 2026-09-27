@@ -14,6 +14,7 @@ from .catalog import Card, CardCatalog
 
 Image = NDArray[Any]
 Point = tuple[float, float]
+Polygon = tuple[Point, Point, Point, Point]
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,7 +46,7 @@ class RecognitionCandidate:
     inliers: int
     inlier_ratio: float
     contains_click: bool
-    polygon: tuple[Point, Point, Point, Point]
+    polygon: Polygon
 
     @property
     def confidence(self) -> float:
@@ -117,7 +118,13 @@ class RecognitionEngine:
 
         self._index = index
 
-    def recognize(self, frame: Image, click: Point, limit: int = 3) -> RecognitionResult:
+    def recognize(
+        self,
+        frame: Image,
+        click: Point,
+        limit: int = 3,
+        region: Polygon | None = None,
+    ) -> RecognitionResult:
         started = time.perf_counter()
         if not self._index:
             raise RuntimeError("Recognition index has not been built")
@@ -129,6 +136,17 @@ class RecognitionEngine:
         frame_keypoints, frame_descriptors = frame_sift.detectAndCompute(gray, None)
         if frame_descriptors is None or len(frame_keypoints) < self.config.minimum_good_matches:
             return RecognitionResult((), _elapsed_ms(started), False)
+        if region is not None:
+            region_contour = np.asarray(region, dtype=np.float32)
+            selected = [
+                index
+                for index, keypoint in enumerate(frame_keypoints)
+                if cv2.pointPolygonTest(region_contour, keypoint.pt, False) >= 0
+            ]
+            if len(selected) < self.config.minimum_good_matches:
+                return RecognitionResult((), _elapsed_ms(started), False)
+            frame_keypoints = [frame_keypoints[index] for index in selected]
+            frame_descriptors = frame_descriptors[selected]
 
         best_by_card: dict[str, RecognitionCandidate] = {}
         for reference in self._index:

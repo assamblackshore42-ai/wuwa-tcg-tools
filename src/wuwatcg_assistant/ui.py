@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from typing import Any, override
 
 import cv2
@@ -32,11 +33,19 @@ from PySide6.QtWidgets import (
 
 from .camera import CameraWorker
 from .catalog import CardCatalog
-from .recognition import Image, Point, RecognitionCandidate, RecognitionEngine, RecognitionResult
+from .recognition import (
+    Image,
+    Point,
+    Polygon,
+    RecognitionCandidate,
+    RecognitionEngine,
+    RecognitionResult,
+)
 
 
 class VideoWidget(QWidget):
     source_clicked = Signal(float, float)
+    source_region_selected = Signal(object)
 
     def __init__(self) -> None:
         super().__init__()
@@ -46,7 +55,10 @@ class VideoWidget(QWidget):
         self._pixmap: QPixmap | None = None
         self._source_size: tuple[int, int] | None = None
         self._polygon: tuple[Point, Point, Point, Point] | None = None
+        self._analysis_region: Polygon | None = None
         self._click: Point | None = None
+        self._drag_origin: QPointF | None = None
+        self._drag_position: QPointF | None = None
 
     def set_frame(self, frame: Image) -> None:
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -59,10 +71,12 @@ class VideoWidget(QWidget):
     def set_selection(
         self,
         click: Point | None,
-        polygon: tuple[Point, Point, Point, Point] | None = None,
+        polygon: Polygon | None = None,
+        analysis_region: Polygon | None = None,
     ) -> None:
         self._click = click
         self._polygon = polygon
+        self._analysis_region = analysis_region
         self.update()
 
     def map_to_source(self, position: QPointF) -> Point | None:
@@ -76,13 +90,50 @@ class VideoWidget(QWidget):
         y = (position.y() - target.y()) * source_height / target.height()
         return x, y
 
+    def rectangle_to_source(self, start: QPointF, end: QPointF) -> Polygon | None:
+        first = self.map_to_source(start)
+        second = self.map_to_source(end)
+        if first is None or second is None:
+            return None
+        left, right = sorted((first[0], second[0]))
+        top, bottom = sorted((first[1], second[1]))
+        return (left, top), (right, top), (right, bottom), (left, bottom)
+
     @override
     def mousePressEvent(self, event: QMouseEvent) -> None:
-        if event.button() == Qt.MouseButton.LeftButton:
-            point = self.map_to_source(event.position())
-            if point is not None:
-                self.source_clicked.emit(*point)
+        if (
+            event.button() == Qt.MouseButton.LeftButton
+            and self.map_to_source(event.position()) is not None
+        ):
+            self._drag_origin = event.position()
+            self._drag_position = event.position()
+            self.update()
         super().mousePressEvent(event)
+
+    @override
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        if self._drag_origin is not None:
+            self._drag_position = self._clamp_to_video(event.position())
+            self.update()
+        super().mouseMoveEvent(event)
+
+    @override
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.MouseButton.LeftButton and self._drag_origin is not None:
+            end = self._clamp_to_video(event.position())
+            distance = math.hypot(end.x() - self._drag_origin.x(), end.y() - self._drag_origin.y())
+            if distance < 8:
+                point = self.map_to_source(self._drag_origin)
+                if point is not None:
+                    self.source_clicked.emit(*point)
+            else:
+                region = self.rectangle_to_source(self._drag_origin, end)
+                if region is not None:
+                    self.source_region_selected.emit(region)
+            self._drag_origin = None
+            self._drag_position = None
+            self.update()
+        super().mouseReleaseEvent(event)
 
     @override
     def paintEvent(self, event: Any) -> None:
@@ -96,16 +147,29 @@ class VideoWidget(QWidget):
 
         target = self._target_rect()
         painter.drawPixmap(target, self._pixmap, QRectF(self._pixmap.rect()))
+        if self._analysis_region is not None:
+            self._draw_source_polygon(
+                painter,
+                target,
+                self._analysis_region,
+                QPen(QColor("#ffd166"), 2, Qt.PenStyle.DashLine),
+            )
         if self._polygon is not None:
-            painter.setPen(QPen(QColor("#5ce1e6"), 3))
-            points = [self._source_to_widget(point, target) for point in self._polygon]
-            for start, end in zip(points, points[1:] + points[:1], strict=True):
-                painter.drawLine(start, end)
+            self._draw_source_polygon(
+                painter,
+                target,
+                self._polygon,
+                QPen(QColor("#5ce1e6"), 3),
+            )
         if self._click is not None:
             point = self._source_to_widget(self._click, target)
             painter.setPen(QPen(QColor("white"), 2))
             painter.setBrush(QBrush(QColor("#ff5263")))
             painter.drawEllipse(point, 6, 6)
+        if self._drag_origin is not None and self._drag_position is not None:
+            painter.setPen(QPen(QColor("#ffd166"), 2, Qt.PenStyle.DashLine))
+            painter.setBrush(QBrush(QColor(255, 209, 102, 35)))
+            painter.drawRect(QRectF(self._drag_origin, self._drag_position).normalized())
 
     def _target_rect(self) -> QRectF:
         if self._source_size is None:
@@ -122,6 +186,26 @@ class VideoWidget(QWidget):
             target.x() + point[0] * target.width() / source_width,
             target.y() + point[1] * target.height() / source_height,
         )
+
+    def _clamp_to_video(self, position: QPointF) -> QPointF:
+        target = self._target_rect()
+        return QPointF(
+            min(max(position.x(), target.left()), target.right()),
+            min(max(position.y(), target.top()), target.bottom()),
+        )
+
+    def _draw_source_polygon(
+        self,
+        painter: QPainter,
+        target: QRectF,
+        polygon: Polygon,
+        pen: QPen,
+    ) -> None:
+        painter.setPen(pen)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        points = [self._source_to_widget(point, target) for point in polygon]
+        for start, end in zip(points, points[1:] + points[:1], strict=True):
+            painter.drawLine(start, end)
 
 
 class _IndexWorker(QThread):
@@ -162,6 +246,7 @@ class _RecognitionTask(QRunnable):
         engine: RecognitionEngine,
         frame: Image,
         click: Point,
+        region: Polygon | None,
     ) -> None:
         super().__init__()
         self.signals = _RecognitionSignals()
@@ -169,10 +254,11 @@ class _RecognitionTask(QRunnable):
         self._engine = engine
         self._frame = frame
         self._click = click
+        self._region = region
 
     def run(self) -> None:
         try:
-            result = self._engine.recognize(self._frame, self._click)
+            result = self._engine.recognize(self._frame, self._click, region=self._region)
         except Exception as error:  # noqa: BLE001
             self.signals.failed.emit(self._request_id, str(error))
             return
@@ -199,6 +285,7 @@ class MainWindow(QMainWindow):
         self._index_worker: _IndexWorker | None = None
         self._latest_frame: Image | None = None
         self._last_click: Point | None = None
+        self._last_region: Polygon | None = None
         self._candidates: tuple[RecognitionCandidate, ...] = ()
         self._request_id = 0
         self._index_ready = False
@@ -230,6 +317,7 @@ class MainWindow(QMainWindow):
 
         self._build_layout()
         self._video.source_clicked.connect(self._recognize_at)
+        self._video.source_region_selected.connect(self._recognize_region)
 
         if build_index:
             self._start_indexing()
@@ -324,8 +412,19 @@ class MainWindow(QMainWindow):
 
     def _recognize_at(self, x: float, y: float) -> None:
         click = (x, y)
+        self._submit_recognition(click, None)
+
+    def _recognize_region(self, region: Polygon) -> None:
+        center = (
+            sum(point[0] for point in region) / 4,
+            sum(point[1] for point in region) / 4,
+        )
+        self._submit_recognition(center, region)
+
+    def _submit_recognition(self, click: Point, region: Polygon | None) -> None:
         self._last_click = click
-        self._video.set_selection(click)
+        self._last_region = region
+        self._video.set_selection(click, analysis_region=region)
         if not self._index_ready:
             self._status.setText("カード画像の準備が終わるまでお待ちください。")
             return
@@ -339,10 +438,12 @@ class MainWindow(QMainWindow):
             self._engine,
             self._latest_frame.copy(),
             click,
+            region,
         )
         task.signals.completed.connect(self._on_recognition_completed)
         task.signals.failed.connect(self._on_recognition_failed)
-        self._status.setText("クリック位置のカードを認識しています…")
+        action = "選択範囲" if region is not None else "クリック位置"
+        self._status.setText(f"{action}のカードを認識しています…")
         self._thread_pool.start(task)
 
     def _on_recognition_completed(self, request_id: int, result: RecognitionResult) -> None:
@@ -391,7 +492,7 @@ class MainWindow(QMainWindow):
             f"一致特徴点: {candidate.inliers}/{candidate.good_matches}\n"
             f"推定確信度: {candidate.confidence:.0%}"
         )
-        self._video.set_selection(self._last_click, candidate.polygon)
+        self._video.set_selection(self._last_click, candidate.polygon, self._last_region)
 
     def _clear_result(self) -> None:
         self._candidates = ()
@@ -400,7 +501,7 @@ class MainWindow(QMainWindow):
         self._card_image.setText("認識結果なし")
         self._card_name.setText("カードをクリックしてください")
         self._card_meta.clear()
-        self._video.set_selection(self._last_click)
+        self._video.set_selection(self._last_click, analysis_region=self._last_region)
 
     @override
     def closeEvent(self, event: QCloseEvent) -> None:
