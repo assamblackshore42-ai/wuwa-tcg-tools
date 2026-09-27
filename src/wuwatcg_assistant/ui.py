@@ -1,0 +1,412 @@
+from __future__ import annotations
+
+from typing import Any, override
+
+import cv2
+from PySide6.QtCore import QObject, QPointF, QRectF, QRunnable, Qt, QThread, QThreadPool, Signal
+from PySide6.QtGui import (
+    QBrush,
+    QCloseEvent,
+    QColor,
+    QFont,
+    QImage,
+    QMouseEvent,
+    QPainter,
+    QPen,
+    QPixmap,
+)
+from PySide6.QtWidgets import (
+    QComboBox,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QListWidget,
+    QListWidgetItem,
+    QMainWindow,
+    QPushButton,
+    QSizePolicy,
+    QSplitter,
+    QVBoxLayout,
+    QWidget,
+)
+
+from .camera import CameraWorker
+from .catalog import CardCatalog
+from .recognition import Image, Point, RecognitionCandidate, RecognitionEngine, RecognitionResult
+
+
+class VideoWidget(QWidget):
+    source_clicked = Signal(float, float)
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setMinimumSize(640, 360)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.setCursor(Qt.CursorShape.CrossCursor)
+        self._pixmap: QPixmap | None = None
+        self._source_size: tuple[int, int] | None = None
+        self._polygon: tuple[Point, Point, Point, Point] | None = None
+        self._click: Point | None = None
+
+    def set_frame(self, frame: Image) -> None:
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        height, width, channels = rgb.shape
+        image = QImage(rgb.data, width, height, channels * width, QImage.Format.Format_RGB888)
+        self._pixmap = QPixmap.fromImage(image.copy())
+        self._source_size = width, height
+        self.update()
+
+    def set_selection(
+        self,
+        click: Point | None,
+        polygon: tuple[Point, Point, Point, Point] | None = None,
+    ) -> None:
+        self._click = click
+        self._polygon = polygon
+        self.update()
+
+    def map_to_source(self, position: QPointF) -> Point | None:
+        if self._source_size is None:
+            return None
+        target = self._target_rect()
+        if not target.contains(position):
+            return None
+        source_width, source_height = self._source_size
+        x = (position.x() - target.x()) * source_width / target.width()
+        y = (position.y() - target.y()) * source_height / target.height()
+        return x, y
+
+    @override
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            point = self.map_to_source(event.position())
+            if point is not None:
+                self.source_clicked.emit(*point)
+        super().mousePressEvent(event)
+
+    @override
+    def paintEvent(self, event: Any) -> None:
+        del event
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor("#11151c"))
+        if self._pixmap is None:
+            painter.setPen(QColor("#aeb8c5"))
+            painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "カメラを開始してください")
+            return
+
+        target = self._target_rect()
+        painter.drawPixmap(target, self._pixmap, QRectF(self._pixmap.rect()))
+        if self._polygon is not None:
+            painter.setPen(QPen(QColor("#5ce1e6"), 3))
+            points = [self._source_to_widget(point, target) for point in self._polygon]
+            for start, end in zip(points, points[1:] + points[:1], strict=True):
+                painter.drawLine(start, end)
+        if self._click is not None:
+            point = self._source_to_widget(self._click, target)
+            painter.setPen(QPen(QColor("white"), 2))
+            painter.setBrush(QBrush(QColor("#ff5263")))
+            painter.drawEllipse(point, 6, 6)
+
+    def _target_rect(self) -> QRectF:
+        if self._source_size is None:
+            return QRectF()
+        source_width, source_height = self._source_size
+        scale = min(self.width() / source_width, self.height() / source_height)
+        width = source_width * scale
+        height = source_height * scale
+        return QRectF((self.width() - width) / 2, (self.height() - height) / 2, width, height)
+
+    def _source_to_widget(self, point: Point, target: QRectF) -> QPointF:
+        source_width, source_height = self._source_size or (1, 1)
+        return QPointF(
+            target.x() + point[0] * target.width() / source_width,
+            target.y() + point[1] * target.height() / source_height,
+        )
+
+
+class _IndexWorker(QThread):
+    progress = Signal(int, int)
+    ready = Signal()
+    failed = Signal(str)
+
+    def __init__(self, engine: RecognitionEngine) -> None:
+        super().__init__()
+        self._engine = engine
+
+    def run(self) -> None:
+        try:
+            self._engine.build_index(self._report_progress)
+        except InterruptedError:
+            return
+        except Exception as error:  # noqa: BLE001
+            self.failed.emit(str(error))
+            return
+        self.ready.emit()
+
+    def _report_progress(self, current: int, total: int) -> None:
+        if self.isInterruptionRequested():
+            raise InterruptedError
+        if current == total or current % 5 == 0:
+            self.progress.emit(current, total)
+
+
+class _RecognitionSignals(QObject):
+    completed = Signal(int, object)
+    failed = Signal(int, str)
+
+
+class _RecognitionTask(QRunnable):
+    def __init__(
+        self,
+        request_id: int,
+        engine: RecognitionEngine,
+        frame: Image,
+        click: Point,
+    ) -> None:
+        super().__init__()
+        self.signals = _RecognitionSignals()
+        self._request_id = request_id
+        self._engine = engine
+        self._frame = frame
+        self._click = click
+
+    def run(self) -> None:
+        try:
+            result = self._engine.recognize(self._frame, self._click)
+        except Exception as error:  # noqa: BLE001
+            self.signals.failed.emit(self._request_id, str(error))
+            return
+        self.signals.completed.emit(self._request_id, result)
+
+
+class MainWindow(QMainWindow):
+    def __init__(
+        self,
+        catalog: CardCatalog,
+        camera_index: int = 0,
+        camera_width: int = 1280,
+        camera_height: int = 720,
+        build_index: bool = True,
+    ) -> None:
+        super().__init__()
+        self.setWindowTitle("鳴潮：対決 カードアシスタント")
+        self.resize(1280, 800)
+
+        self._engine = RecognitionEngine(catalog)
+        self._camera_width = camera_width
+        self._camera_height = camera_height
+        self._camera_worker: CameraWorker | None = None
+        self._index_worker: _IndexWorker | None = None
+        self._latest_frame: Image | None = None
+        self._last_click: Point | None = None
+        self._candidates: tuple[RecognitionCandidate, ...] = ()
+        self._request_id = 0
+        self._index_ready = False
+        self._thread_pool = QThreadPool(self)
+        self._thread_pool.setMaxThreadCount(1)
+
+        self._video = VideoWidget()
+        self._camera_selector = QComboBox()
+        for index in range(10):
+            self._camera_selector.addItem(f"カメラ {index}", index)
+        self._camera_selector.setCurrentIndex(max(0, min(camera_index, 9)))
+        self._camera_button = QPushButton("カメラ開始")
+        self._camera_button.clicked.connect(self._toggle_camera)
+        self._status = QLabel("カード画像を準備しています…")
+        self._status.setWordWrap(True)
+
+        self._card_image = QLabel("認識結果")
+        self._card_image.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._card_image.setMinimumHeight(330)
+        self._card_image.setFrameShape(QFrame.Shape.StyledPanel)
+        self._card_name = QLabel("カードをクリックしてください")
+        self._card_name.setFont(QFont(self.font().family(), 16, QFont.Weight.Bold))
+        self._card_name.setWordWrap(True)
+        self._card_meta = QLabel()
+        self._card_meta.setWordWrap(True)
+        self._candidate_list = QListWidget()
+        self._candidate_list.setMaximumHeight(150)
+        self._candidate_list.currentRowChanged.connect(self._show_candidate)
+
+        self._build_layout()
+        self._video.source_clicked.connect(self._recognize_at)
+
+        if build_index:
+            self._start_indexing()
+
+    def _build_layout(self) -> None:
+        controls = QHBoxLayout()
+        controls.addWidget(QLabel("入力:"))
+        controls.addWidget(self._camera_selector)
+        controls.addWidget(self._camera_button)
+        controls.addStretch()
+
+        left_layout = QVBoxLayout()
+        left_layout.addLayout(controls)
+        left_layout.addWidget(self._video, 1)
+        left_layout.addWidget(self._status)
+        left = QWidget()
+        left.setLayout(left_layout)
+
+        right_layout = QVBoxLayout()
+        right_layout.addWidget(self._card_image)
+        right_layout.addWidget(self._card_name)
+        right_layout.addWidget(self._card_meta)
+        right_layout.addWidget(QLabel("認識候補"))
+        right_layout.addWidget(self._candidate_list)
+        right_layout.addStretch()
+        right = QWidget()
+        right.setLayout(right_layout)
+        right.setMinimumWidth(330)
+        right.setMaximumWidth(430)
+
+        splitter = QSplitter()
+        splitter.addWidget(left)
+        splitter.addWidget(right)
+        splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, 0)
+        self.setCentralWidget(splitter)
+
+    def _start_indexing(self) -> None:
+        self._index_worker = _IndexWorker(self._engine)
+        self._index_worker.progress.connect(self._on_index_progress)
+        self._index_worker.ready.connect(self._on_index_ready)
+        self._index_worker.failed.connect(self._on_index_failed)
+        self._index_worker.start()
+
+    def _on_index_progress(self, current: int, total: int) -> None:
+        self._status.setText(f"カード画像を準備しています… {current}/{total}")
+
+    def _on_index_ready(self) -> None:
+        self._index_ready = True
+        self._status.setText(
+            f"準備完了（画像 {self._engine.indexed_variant_count}件）。"
+            "カメラ映像内のカードをクリックしてください。"
+        )
+
+    def _on_index_failed(self, message: str) -> None:
+        self._status.setText(f"カード画像の準備に失敗しました: {message}")
+
+    def _toggle_camera(self) -> None:
+        if self._camera_worker is not None and self._camera_worker.isRunning():
+            self._stop_camera()
+            return
+
+        index = int(self._camera_selector.currentData())
+        self._camera_worker = CameraWorker(index, self._camera_width, self._camera_height)
+        self._camera_worker.frame_ready.connect(self._on_frame)
+        self._camera_worker.camera_error.connect(self._on_camera_error)
+        self._camera_worker.camera_opened.connect(self._status.setText)
+        self._camera_worker.finished.connect(self._camera_finished)
+        self._camera_selector.setEnabled(False)
+        self._camera_button.setText("カメラ停止")
+        self._status.setText(f"カメラ {index} に接続しています…")
+        self._camera_worker.start()
+
+    def _stop_camera(self) -> None:
+        if self._camera_worker is not None:
+            self._camera_worker.stop()
+        self._camera_worker = None
+        self._camera_selector.setEnabled(True)
+        self._camera_button.setText("カメラ開始")
+        self._status.setText("カメラを停止しました。")
+
+    def _camera_finished(self) -> None:
+        self._camera_selector.setEnabled(True)
+        self._camera_button.setText("カメラ開始")
+
+    def _on_camera_error(self, message: str) -> None:
+        self._status.setText(message)
+
+    def _on_frame(self, frame: Image) -> None:
+        self._latest_frame = frame.copy()
+        self._video.set_frame(frame)
+
+    def _recognize_at(self, x: float, y: float) -> None:
+        click = (x, y)
+        self._last_click = click
+        self._video.set_selection(click)
+        if not self._index_ready:
+            self._status.setText("カード画像の準備が終わるまでお待ちください。")
+            return
+        if self._latest_frame is None:
+            self._status.setText("先にカメラを開始してください。")
+            return
+
+        self._request_id += 1
+        task = _RecognitionTask(
+            self._request_id,
+            self._engine,
+            self._latest_frame.copy(),
+            click,
+        )
+        task.signals.completed.connect(self._on_recognition_completed)
+        task.signals.failed.connect(self._on_recognition_failed)
+        self._status.setText("クリック位置のカードを認識しています…")
+        self._thread_pool.start(task)
+
+    def _on_recognition_completed(self, request_id: int, result: RecognitionResult) -> None:
+        if request_id != self._request_id:
+            return
+        self._candidates = result.candidates
+        self._candidate_list.clear()
+        if not result.candidates:
+            self._clear_result()
+            self._status.setText(
+                "カードを認識できませんでした。見えている絵柄部分をクリックしてください。"
+            )
+            return
+
+        for candidate in result.candidates:
+            item = QListWidgetItem(
+                f"{candidate.card.code}  {candidate.card.name}  ({candidate.confidence:.0%})"
+            )
+            self._candidate_list.addItem(item)
+        self._candidate_list.setCurrentRow(0)
+        certainty = "高確信" if result.is_confident else "候補を確認してください"
+        self._status.setText(f"{certainty}・処理時間 {result.elapsed_ms:.0f} ms")
+
+    def _on_recognition_failed(self, request_id: int, message: str) -> None:
+        if request_id == self._request_id:
+            self._status.setText(f"認識処理に失敗しました: {message}")
+
+    def _show_candidate(self, row: int) -> None:
+        if row < 0 or row >= len(self._candidates):
+            return
+        candidate = self._candidates[row]
+        pixmap = QPixmap(str(candidate.reference_path))
+        self._card_image.setPixmap(
+            pixmap.scaled(
+                300,
+                330,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+        )
+        self._card_name.setText(candidate.card.name)
+        type_label = "キャラクター" if candidate.card.card_type == "character" else "アクション"
+        self._card_meta.setText(
+            f"カード番号: {candidate.card.code}\n"
+            f"種類: {type_label}\n"
+            f"一致特徴点: {candidate.inliers}/{candidate.good_matches}\n"
+            f"推定確信度: {candidate.confidence:.0%}"
+        )
+        self._video.set_selection(self._last_click, candidate.polygon)
+
+    def _clear_result(self) -> None:
+        self._candidates = ()
+        self._candidate_list.clear()
+        self._card_image.clear()
+        self._card_image.setText("認識結果なし")
+        self._card_name.setText("カードをクリックしてください")
+        self._card_meta.clear()
+        self._video.set_selection(self._last_click)
+
+    @override
+    def closeEvent(self, event: QCloseEvent) -> None:
+        self._stop_camera()
+        if self._index_worker is not None and self._index_worker.isRunning():
+            self._index_worker.requestInterruption()
+            self._index_worker.wait(5_000)
+        self._thread_pool.waitForDone(5_000)
+        event.accept()

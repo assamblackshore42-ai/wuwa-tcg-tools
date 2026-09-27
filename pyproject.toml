@@ -14,6 +14,9 @@ dependencies = [
   "PySide6>=6.9,<7",
 ]
 
+[project.scripts]
+wuwatcg-assistant = "wuwatcg_assistant.__main__:main"
+
 [dependency-groups]
 dev = [
   "mypy>=1.15,<2",
