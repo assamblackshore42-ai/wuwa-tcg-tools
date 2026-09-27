@@ -15,6 +15,7 @@ from PySide6.QtGui import (
     QPainter,
     QPen,
     QPixmap,
+    QResizeEvent,
 )
 from PySide6.QtWidgets import (
     QComboBox,
@@ -208,6 +209,43 @@ class VideoWidget(QWidget):
             painter.drawLine(start, end)
 
 
+class ScalableImageLabel(QLabel):
+    """Display a source pixmap at the largest size that fits the label."""
+
+    def __init__(self, placeholder: str = "") -> None:
+        super().__init__(placeholder)
+        self._source_pixmap = QPixmap()
+
+    def set_source_pixmap(self, pixmap: QPixmap) -> None:
+        self._source_pixmap = pixmap
+        self.setText("")
+        self._rescale_pixmap()
+
+    def clear_image(self, placeholder: str = "") -> None:
+        self._source_pixmap = QPixmap()
+        self.clear()
+        self.setText(placeholder)
+
+    @override
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
+        self._rescale_pixmap()
+
+    def _rescale_pixmap(self) -> None:
+        if self._source_pixmap.isNull():
+            return
+        target_size = self.contentsRect().size()
+        if target_size.isEmpty():
+            return
+        self.setPixmap(
+            self._source_pixmap.scaled(
+                target_size,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+        )
+
+
 class _IndexWorker(QThread):
     progress = Signal(int, int)
     ready = Signal()
@@ -294,9 +332,13 @@ class MainWindow(QMainWindow):
         self._status = QLabel("カード画像を準備しています…")
         self._status.setWordWrap(True)
 
-        self._card_image = QLabel("認識結果")
+        self._card_image = ScalableImageLabel("認識結果")
         self._card_image.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._card_image.setMinimumHeight(330)
+        self._card_image.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding,
+        )
         self._card_image.setFrameShape(QFrame.Shape.StyledPanel)
         self._card_name = QLabel("カードをクリックしてください")
         self._card_name.setFont(QFont(self.font().family(), 16, QFont.Weight.Bold))
@@ -334,23 +376,25 @@ class MainWindow(QMainWindow):
         left.setLayout(left_layout)
 
         right_layout = QVBoxLayout()
-        right_layout.addWidget(self._card_image)
+        right_layout.addWidget(self._card_image, 1)
         right_layout.addWidget(self._card_name)
         right_layout.addWidget(self._card_meta)
         right_layout.addWidget(QLabel("認識候補"))
         right_layout.addWidget(self._candidate_list)
-        right_layout.addStretch()
         right = QWidget()
         right.setLayout(right_layout)
         right.setMinimumWidth(330)
-        right.setMaximumWidth(430)
+        right.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
-        splitter = QSplitter()
-        splitter.addWidget(left)
-        splitter.addWidget(right)
-        splitter.setStretchFactor(0, 1)
-        splitter.setStretchFactor(1, 0)
-        self.setCentralWidget(splitter)
+        self._splitter = QSplitter()
+        self._splitter.addWidget(left)
+        self._splitter.addWidget(right)
+        self._splitter.setCollapsible(0, False)
+        self._splitter.setCollapsible(1, False)
+        self._splitter.setStretchFactor(0, 3)
+        self._splitter.setStretchFactor(1, 1)
+        self._splitter.setSizes([900, 380])
+        self.setCentralWidget(self._splitter)
 
     def _start_indexing(self) -> None:
         self._index_worker = _IndexWorker(self._engine)
@@ -491,14 +535,7 @@ class MainWindow(QMainWindow):
             return
         candidate = self._candidates[row]
         pixmap = QPixmap(str(candidate.reference_path))
-        self._card_image.setPixmap(
-            pixmap.scaled(
-                300,
-                330,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-        )
+        self._card_image.set_source_pixmap(pixmap)
         self._card_name.setText(candidate.card.name)
         type_label = "キャラクター" if candidate.card.card_type == "character" else "アクション"
         self._card_meta.setText(
@@ -512,8 +549,7 @@ class MainWindow(QMainWindow):
     def _clear_result(self) -> None:
         self._candidates = ()
         self._candidate_list.clear()
-        self._card_image.clear()
-        self._card_image.setText("認識結果なし")
+        self._card_image.clear_image("認識結果なし")
         self._card_name.setText("カードをクリックしてください")
         self._card_meta.clear()
         self._video.set_selection(self._last_click, analysis_region=self._last_region)
