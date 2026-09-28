@@ -83,6 +83,68 @@ select {
   box-shadow: 0 0 10px #62e8df;
 }
 
+.connection-status--connecting > span,
+.connection-status--reconnecting > span {
+  background: #f3c75f;
+  box-shadow: 0 0 10px #f3c75f;
+}
+
+.connection-status--error > span {
+  background: #ff6f85;
+  box-shadow: 0 0 10px #ff6f85;
+}
+
+.connection-error {
+  margin: -8px 0 18px;
+  padding: 10px 13px;
+  border: 1px solid rgb(255 111 133 / 35%);
+  border-radius: 10px;
+  color: #ff9cac;
+  background: rgb(112 27 43 / 22%);
+  font-size: 12px;
+}
+
+.loading-state {
+  display: grid;
+  min-height: 220px;
+  place-items: center;
+  border: 1px solid #263448;
+  border-radius: 20px;
+  color: #8795a9;
+  background: rgb(15 23 35 / 82%);
+}
+
+.connection-status--connecting > span,
+.connection-status--reconnecting > span {
+  background: #f3c75f;
+  box-shadow: 0 0 10px #f3c75f;
+}
+
+.connection-status--error > span {
+  background: #ff6f85;
+  box-shadow: 0 0 10px #ff6f85;
+}
+
+.connection-error {
+  margin: -8px 0 18px;
+  padding: 10px 13px;
+  border: 1px solid rgb(255 111 133 / 35%);
+  border-radius: 10px;
+  color: #ff9cac;
+  background: rgb(112 27 43 / 22%);
+  font-size: 12px;
+}
+
+.loading-state {
+  display: grid;
+  min-height: 220px;
+  place-items: center;
+  border: 1px solid #263448;
+  border-radius: 20px;
+  color: #8795a9;
+  background: rgb(15 23 35 / 82%);
+}
+
 .life-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
