@@ -1,13 +1,41 @@
+import { useState } from 'react';
+
+import { INITIAL_LIFE, LifeCounter } from './components/LifeCounter';
 import './styles.css';
 
 export function App() {
+  const [playerOneLife, setPlayerOneLife] = useState(INITIAL_LIFE);
+  const [playerTwoLife, setPlayerTwoLife] = useState(INITIAL_LIFE);
+
   return (
     <main className="app-shell">
-      <section className="setup-card" aria-labelledby="setup-title">
-        <p className="eyebrow">OBS OVERLAY</p>
-        <h1 id="setup-title">環境構築が完了しました</h1>
-        <p>対戦管理機能は次の開発段階で追加します。この画面はReactとViteの起動確認用です。</p>
-      </section>
+      <div className="control-panel">
+        <header className="app-header">
+          <div>
+            <p className="eyebrow">WUTHERING WAVES TCG</p>
+            <h1>対戦コントロール</h1>
+          </div>
+          <span className="connection-status">
+            <span aria-hidden="true" />
+            OBS オーバーレイ
+          </span>
+        </header>
+
+        <div className="life-grid">
+          <LifeCounter
+            label="PLAYER 1"
+            life={playerOneLife}
+            onChange={setPlayerOneLife}
+            tone="cyan"
+          />
+          <LifeCounter
+            label="PLAYER 2"
+            life={playerTwoLife}
+            onChange={setPlayerTwoLife}
+            tone="magenta"
+          />
+        </div>
+      </div>
     </main>
   );
 }

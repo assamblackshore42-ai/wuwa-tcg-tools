@@ -1,0 +1,98 @@
+.life-counter {
+  --player-color: #62e8df;
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid color-mix(in srgb, var(--player-color) 35%, #263448);
+  border-radius: 20px;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--player-color) 12%, transparent),
+      transparent 52%
+    ),
+    rgb(15 23 35 / 92%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%);
+}
+
+.life-counter::after {
+  position: absolute;
+  right: -24px;
+  bottom: -46px;
+  width: 145px;
+  height: 145px;
+  border: 22px solid color-mix(in srgb, var(--player-color) 7%, transparent);
+  border-radius: 50%;
+  content: '';
+  pointer-events: none;
+}
+
+.life-counter--magenta {
+  --player-color: #ff6fae;
+}
+
+.life-counter__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.life-counter h2 {
+  margin: 3px 0 0;
+  color: #f5f8ff;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.life-counter .section-kicker {
+  color: var(--player-color);
+}
+
+.life-counter__controls {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 52px minmax(80px, 1fr) 52px;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.life-counter__controls > button {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--player-color) 28%, #344158);
+  border-radius: 14px;
+  color: var(--player-color);
+  background: rgb(9 15 25 / 72%);
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.life-counter__controls > button:hover {
+  border-color: var(--player-color);
+  background: color-mix(in srgb, var(--player-color) 12%, #09101a);
+  transform: translateY(-1px);
+}
+
+.life-counter__controls > button:active {
+  transform: translateY(1px);
+}
+
+.life-counter__value {
+  color: #fff;
+  font-family: 'Bahnschrift', 'Segoe UI', sans-serif;
+  font-size: clamp(54px, 8vw, 74px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 0.9;
+  text-align: center;
+  text-shadow: 0 0 32px color-mix(in srgb, var(--player-color) 32%, transparent);
+}

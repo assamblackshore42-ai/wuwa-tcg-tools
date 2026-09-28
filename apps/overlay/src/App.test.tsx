@@ -1,12 +1,27 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { App } from './App';
 
 describe('App', () => {
-  it('renders the environment setup confirmation', () => {
+  it('manages both life counters independently', () => {
     render(<App />);
 
-    expect(screen.getByRole('heading', { name: '環境構築が完了しました' })).toBeInTheDocument();
+    const playerOneLife = screen.getByLabelText('PLAYER 1の現在ライフ');
+    const playerTwoLife = screen.getByLabelText('PLAYER 2の現在ライフ');
+
+    fireEvent.click(screen.getByRole('button', { name: 'PLAYER 1のライフを1減らす' }));
+
+    expect(playerOneLife).toHaveTextContent('19');
+    expect(playerTwoLife).toHaveTextContent('20');
+  });
+
+  it('resets a life counter to its initial value', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'PLAYER 2のライフを1増やす' }));
+    fireEvent.click(screen.getByRole('button', { name: 'PLAYER 2のライフを20に戻す' }));
+
+    expect(screen.getByLabelText('PLAYER 2の現在ライフ')).toHaveTextContent('20');
   });
 });
