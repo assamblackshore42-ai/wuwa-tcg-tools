@@ -33,6 +33,7 @@ type CommandResponse = {
 };
 
 const HTTP_BASE = 'http://127.0.0.1:38471';
+export const OBS_OVERLAY_URL = `${HTTP_BASE}/overlay`;
 export const MATCH_WEB_SOCKET_URL = 'ws://127.0.0.1:38471/ws';
 
 export async function fetchMatchState(): Promise<MatchState> {

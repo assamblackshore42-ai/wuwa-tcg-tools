@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react';
-import { RotateCcw, Undo2 } from 'lucide-react';
+import { Check, Copy, RotateCcw, Undo2 } from 'lucide-react';
 
-import type { ApiBattleStatus, ApiTurnAction, MatchCommand } from './api/matchApi';
+import {
+  OBS_OVERLAY_URL,
+  type ApiBattleStatus,
+  type ApiTurnAction,
+  type MatchCommand,
+} from './api/matchApi';
 import { BattleStatus, type BattleStatusValue } from './components/BattleStatus';
 import { LifeCounter } from './components/LifeCounter';
 import { TurnManager, type ActivePlayer, type TurnAction } from './components/TurnManager';
@@ -42,6 +47,7 @@ const STATUS_LABELS: Record<ConnectionStatus, string> = {
 export function App() {
   const isOverlay = window.location.pathname === '/overlay';
   const [isResetDialogOpen, setResetDialogOpen] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle');
   const match = useMatchStore((store) => store.match);
   const connectionStatus = useMatchStore((store) => store.connectionStatus);
   const error = useMatchStore((store) => store.error);
@@ -54,6 +60,15 @@ export function App() {
     void sendCommand(command);
   };
 
+  const copyOverlayUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(OBS_OVERLAY_URL);
+      setCopyStatus('copied');
+    } catch {
+      setCopyStatus('error');
+    }
+  };
+
   return (
     <main className={`app-shell${isOverlay ? ' app-shell--overlay' : ''}`}>
       <div className={`control-panel${isOverlay ? ' overlay-panel' : ''}`}>
@@ -64,6 +79,24 @@ export function App() {
               <h1>対戦コントロール</h1>
             </div>
             <div className="app-header__actions">
+              <button
+                className={`header-action-button copy-url-button copy-url-button--${copyStatus}`}
+                type="button"
+                onClick={() => void copyOverlayUrl()}
+                aria-label="OBS URLをコピー"
+                title={OBS_OVERLAY_URL}
+              >
+                {copyStatus === 'copied' ? (
+                  <Check aria-hidden="true" size={17} />
+                ) : (
+                  <Copy aria-hidden="true" size={17} />
+                )}
+                {copyStatus === 'copied'
+                  ? 'コピー済み'
+                  : copyStatus === 'error'
+                    ? 'コピー失敗'
+                    : 'OBS URL'}
+              </button>
               <button
                 className="header-action-button reset-match-button"
                 type="button"

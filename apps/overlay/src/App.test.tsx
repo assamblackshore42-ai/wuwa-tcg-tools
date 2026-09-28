@@ -1,7 +1,7 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { MatchState } from './api/matchApi';
+import { OBS_OVERLAY_URL, type MatchState } from './api/matchApi';
 import { App } from './App';
 import { useMatchStore } from './store/matchStore';
 
@@ -21,10 +21,16 @@ const INITIAL_MATCH: MatchState = {
 
 describe('App', () => {
   const sendCommand = vi.fn().mockResolvedValue(undefined);
+  const writeText = vi.fn().mockResolvedValue(undefined);
 
   beforeEach(() => {
     window.history.pushState({}, '', '/');
     sendCommand.mockClear();
+    writeText.mockClear();
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
     useMatchStore.setState({
       match: structuredClone(INITIAL_MATCH),
       connectionStatus: 'connected',
@@ -75,6 +81,15 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: '直前の操作を元に戻す' }));
 
     expect(sendCommand).toHaveBeenCalledWith({ type: 'undo' });
+  });
+
+  it('copies the OBS browser source URL', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'OBS URLをコピー' }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(OBS_OVERLAY_URL));
+    expect(screen.getByRole('button', { name: 'OBS URLをコピー' })).toHaveTextContent('コピー済み');
   });
 
   it('confirms before resetting the match', () => {

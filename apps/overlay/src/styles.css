@@ -87,6 +87,18 @@ select {
   background: rgb(135 85 35 / 22%);
 }
 
+.copy-url-button--copied {
+  border-color: #398d86;
+  color: #8df4eb;
+  background: rgb(36 122 115 / 22%);
+}
+
+.copy-url-button--error {
+  border-color: #a34d5a;
+  color: #ffabb7;
+  background: rgb(128 45 58 / 22%);
+}
+
 .dialog-backdrop {
   position: fixed;
   z-index: 10;
