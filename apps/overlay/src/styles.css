@@ -1,0 +1,60 @@
+:root {
+  color: #eef8fa;
+  background: #101820;
+  font-family: "Segoe UI", "Yu Gothic UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.app-shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top, rgb(38 126 115 / 28%), transparent 46%),
+    #101820;
+}
+
+.setup-card {
+  width: min(100%, 620px);
+  padding: 40px;
+  border: 1px solid #536273;
+  border-radius: 18px;
+  background: rgb(27 37 47 / 92%);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 36%);
+}
+
+.setup-card h1 {
+  margin: 8px 0 16px;
+  font-size: clamp(28px, 5vw, 44px);
+}
+
+.setup-card p {
+  margin: 0;
+  color: #b9c7d5;
+  line-height: 1.7;
+}
+
+.eyebrow {
+  color: #5ce1cf !important;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}

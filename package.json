@@ -1,0 +1,13 @@
+{
+  "name": "wuwatcg-tools",
+  "private": true,
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=24 <25",
+    "pnpm": ">=11 <12"
+  },
+  "scripts": {
+    "overlay:build": "pnpm --filter @wuwatcg/overlay build",
+    "overlay:dev": "pnpm --filter @wuwatcg/overlay dev"
+  }
+}
