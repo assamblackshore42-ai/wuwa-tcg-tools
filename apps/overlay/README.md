@@ -1,7 +1,35 @@
 # OBSオーバーレイ開発環境
 
 対戦管理用のWindowsアプリとOBSブラウザソースを、Tauri 2、React、TypeScript、Rustで構築します。
-現在は環境構築のみで、対戦管理機能は未実装です。
+
+## オーバーレイの仕組み
+
+```mermaid
+flowchart LR
+    user["操作者"] -->|"ライフ・戦況・ターンを操作"| control
+
+    subgraph app["Windowsアプリ（Tauri）"]
+        control["操作画面<br/>React"]
+        server["ローカルサーバー<br/>Axum<br/>127.0.0.1:38471"]
+        database[("対戦状態・操作履歴<br/>SQLite")]
+        tray["タスクトレイ"]
+
+        control -->|"POST /api/commands"| server
+        server -->|"WebSocket /ws"| control
+        server <--> database
+        tray -.->|"画面を再表示"| control
+    end
+
+    obs["OBS Studio<br/>ブラウザソース"] -->|"GET /overlay・GET /api/state"| server
+    server ==>|"WebSocket /wsで状態を配信"| obs
+```
+
+1. Windowsアプリを起動すると、PC内だけで使うローカルサーバーが`127.0.0.1:38471`で待ち受けます。
+2. 操作画面からライフ、戦況、ターンを変更すると、HTTP API経由でSQLiteへ保存されます。
+3. 更新後の状態はWebSocketで操作画面とOBSへ同時配信されるため、OBS表示がリアルタイムに切り替わります。
+4. OBSはブラウザソースとして`http://127.0.0.1:38471/overlay`を表示します。外部のWebサービスやインターネット接続は使用しません。
+
+操作画面を閉じてもアプリはタスクトレイで動作し続けるため、OBSへの配信は継続します。タスクトレイからアプリを終了するとローカルサーバーも停止し、OBSオーバーレイへ接続できなくなります。
 
 ## 採用技術
 
