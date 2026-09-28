@@ -20,6 +20,9 @@ pub fn run() {
     let _ = tracing_subscriber::fmt().with_env_filter(filter).try_init();
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            tray::show_control_window(app);
+        }))
         .setup(|app| {
             tray::setup(app)?;
             let data_directory = app.path().app_data_dir()?;
