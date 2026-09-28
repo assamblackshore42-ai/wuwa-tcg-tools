@@ -77,6 +77,22 @@ describe('App', () => {
     expect(sendCommand).toHaveBeenCalledWith({ type: 'undo' });
   });
 
+  it('confirms before resetting the match', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '新しい対戦' }));
+    expect(screen.getByRole('dialog', { name: '新しい対戦を開始しますか？' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'キャンセル' }));
+    expect(sendCommand).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '新しい対戦' }));
+    fireEvent.click(screen.getByRole('button', { name: '初期状態へ戻す' }));
+    expect(sendCommand).toHaveBeenCalledWith({ type: 'reset_match' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('renders newer state received from the server', () => {
     render(<App />);
 

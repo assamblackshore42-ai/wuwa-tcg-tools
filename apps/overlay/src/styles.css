@@ -61,7 +61,7 @@ select {
   gap: 10px;
 }
 
-.undo-button {
+.header-action-button {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -76,10 +76,79 @@ select {
   font-weight: 700;
 }
 
-.undo-button:hover {
+.header-action-button:hover {
   border-color: #7770dc;
   color: #fff;
   background: rgb(75 68 159 / 24%);
+}
+
+.reset-match-button:hover {
+  border-color: #d09b54;
+  background: rgb(135 85 35 / 22%);
+}
+
+.dialog-backdrop {
+  position: fixed;
+  z-index: 10;
+  display: grid;
+  inset: 0;
+  place-items: center;
+  padding: 24px;
+  background: rgb(3 7 12 / 72%);
+  backdrop-filter: blur(6px);
+}
+
+.confirm-dialog {
+  width: min(100%, 440px);
+  padding: 26px;
+  border: 1px solid #3b4960;
+  border-radius: 18px;
+  background: #111a28;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 50%);
+}
+
+.confirm-dialog .section-kicker {
+  color: #e8a956;
+}
+
+.confirm-dialog h2 {
+  margin: 7px 0 12px;
+  font-size: 22px;
+}
+
+.confirm-dialog > p:not(.section-kicker) {
+  margin: 0;
+  color: #9eabbc;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.confirm-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.confirm-dialog__actions button {
+  min-height: 40px;
+  padding: 8px 15px;
+  border: 1px solid #39465a;
+  border-radius: 10px;
+  color: #c6d0de;
+  background: #172232;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.confirm-dialog__actions .confirm-dialog__primary {
+  border-color: #8c5d30;
+  color: #fff6e9;
+  background: #8e5727;
+}
+
+.confirm-dialog__actions button:hover {
+  filter: brightness(1.12);
 }
 
 .eyebrow {
@@ -282,7 +351,7 @@ body:has(.app-shell--overlay) {
 
   .app-header__actions {
     width: 100%;
-    justify-content: space-between;
+    flex-wrap: wrap;
   }
 
   .life-grid {

@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { Undo2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { RotateCcw, Undo2 } from 'lucide-react';
 
 import type { ApiBattleStatus, ApiTurnAction, MatchCommand } from './api/matchApi';
 import { BattleStatus, type BattleStatusValue } from './components/BattleStatus';
@@ -41,6 +41,7 @@ const STATUS_LABELS: Record<ConnectionStatus, string> = {
 
 export function App() {
   const isOverlay = window.location.pathname === '/overlay';
+  const [isResetDialogOpen, setResetDialogOpen] = useState(false);
   const match = useMatchStore((store) => store.match);
   const connectionStatus = useMatchStore((store) => store.connectionStatus);
   const error = useMatchStore((store) => store.error);
@@ -64,7 +65,15 @@ export function App() {
             </div>
             <div className="app-header__actions">
               <button
-                className="undo-button"
+                className="header-action-button reset-match-button"
+                type="button"
+                onClick={() => setResetDialogOpen(true)}
+              >
+                <RotateCcw aria-hidden="true" size={17} />
+                新しい対戦
+              </button>
+              <button
+                className="header-action-button undo-button"
                 type="button"
                 onClick={() => dispatch({ type: 'undo' })}
                 aria-label="直前の操作を元に戻す"
@@ -130,6 +139,39 @@ export function App() {
               />
             </div>
           </>
+        )}
+
+        {isResetDialogOpen && !isOverlay && (
+          <div className="dialog-backdrop">
+            <section
+              className="confirm-dialog"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="reset-dialog-title"
+              aria-describedby="reset-dialog-description"
+            >
+              <p className="section-kicker">RESET MATCH</p>
+              <h2 id="reset-dialog-title">新しい対戦を開始しますか？</h2>
+              <p id="reset-dialog-description">
+                ライフ、戦況、ターンを初期状態へ戻します。直後であればUndoできます。
+              </p>
+              <div className="confirm-dialog__actions">
+                <button type="button" onClick={() => setResetDialogOpen(false)}>
+                  キャンセル
+                </button>
+                <button
+                  className="confirm-dialog__primary"
+                  type="button"
+                  onClick={() => {
+                    dispatch({ type: 'reset_match' });
+                    setResetDialogOpen(false);
+                  }}
+                >
+                  初期状態へ戻す
+                </button>
+              </div>
+            </section>
+          </div>
         )}
       </div>
     </main>
