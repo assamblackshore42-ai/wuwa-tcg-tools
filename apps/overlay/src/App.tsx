@@ -39,6 +39,7 @@ const STATUS_LABELS: Record<ConnectionStatus, string> = {
 };
 
 export function App() {
+  const isOverlay = window.location.pathname === '/overlay';
   const match = useMatchStore((store) => store.match);
   const connectionStatus = useMatchStore((store) => store.connectionStatus);
   const error = useMatchStore((store) => store.error);
@@ -52,20 +53,25 @@ export function App() {
   };
 
   return (
-    <main className="app-shell">
-      <div className="control-panel">
-        <header className="app-header">
-          <div>
-            <p className="eyebrow">WUTHERING WAVES TCG</p>
-            <h1>対戦コントロール</h1>
-          </div>
-          <span className={`connection-status connection-status--${connectionStatus}`}>
-            <span aria-hidden="true" />
-            {STATUS_LABELS[connectionStatus]}
-          </span>
-        </header>
+    <main className={`app-shell${isOverlay ? ' app-shell--overlay' : ''}`}>
+      <div className={`control-panel${isOverlay ? ' overlay-panel' : ''}`}>
+        {!isOverlay && (
+          <header className="app-header">
+            <div>
+              <p className="eyebrow">WUTHERING WAVES TCG</p>
+              <h1>対戦コントロール</h1>
+            </div>
+            <span className={`connection-status connection-status--${connectionStatus}`}>
+              <span aria-hidden="true" />
+              {STATUS_LABELS[connectionStatus]}
+            </span>
+          </header>
+        )}
 
-        {error !== null && <p className="connection-error">{error}</p>}
+        {!isOverlay && error !== null && <p className="connection-error">{error}</p>}
+        {isOverlay && connectionStatus !== 'connected' && (
+          <p className="overlay-connection-status">{STATUS_LABELS[connectionStatus]}</p>
+        )}
 
         {match === null ? (
           <section className="loading-state" aria-live="polite">
@@ -84,6 +90,7 @@ export function App() {
                   }
                   onReset={() => dispatch({ type: 'reset_life', player: player.id })}
                   tone={index === 0 ? 'cyan' : 'magenta'}
+                  readOnly={isOverlay}
                 />
               ))}
             </div>
@@ -94,6 +101,7 @@ export function App() {
                 onChange={(status) =>
                   dispatch({ type: 'set_battle_status', status: BATTLE_STATUS_TO_API[status] })
                 }
+                readOnly={isOverlay}
               />
               <TurnManager
                 turn={match.turn.number}
@@ -106,6 +114,7 @@ export function App() {
                 }
                 onResetActions={() => dispatch({ type: 'reset_turn_actions' })}
                 onNextTurn={() => dispatch({ type: 'end_turn' })}
+                readOnly={isOverlay}
               />
             </div>
           </>

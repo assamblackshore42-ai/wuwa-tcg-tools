@@ -7,6 +7,7 @@ export type BattleStatusValue = 'player-one' | 'even' | 'player-two';
 type BattleStatusProps = {
   value: BattleStatusValue;
   onChange: (status: BattleStatusValue) => void;
+  readOnly?: boolean;
 };
 
 const STATUS_OPTIONS: Array<{
@@ -19,7 +20,7 @@ const STATUS_OPTIONS: Array<{
   { value: 'player-two', label: 'PLAYER 2が優勢', shortLabel: 'P2 優勢' },
 ];
 
-export function BattleStatus({ value, onChange }: BattleStatusProps) {
+export function BattleStatus({ value, onChange, readOnly = false }: BattleStatusProps) {
   const currentLabel =
     STATUS_OPTIONS.find((option) => option.value === value)?.label ?? '戦況は互角';
 
@@ -39,19 +40,21 @@ export function BattleStatus({ value, onChange }: BattleStatusProps) {
         </div>
       </header>
 
-      <div className="battle-status__options" role="group" aria-label="戦況を選択">
-        {STATUS_OPTIONS.map((option) => (
-          <button
-            className={value === option.value ? 'is-active' : undefined}
-            type="button"
-            key={option.value}
-            onClick={() => onChange(option.value)}
-            aria-pressed={value === option.value}
-          >
-            {option.shortLabel}
-          </button>
-        ))}
-      </div>
+      {!readOnly && (
+        <div className="battle-status__options" role="group" aria-label="戦況を選択">
+          {STATUS_OPTIONS.map((option) => (
+            <button
+              className={value === option.value ? 'is-active' : undefined}
+              type="button"
+              key={option.value}
+              onClick={() => onChange(option.value)}
+              aria-pressed={value === option.value}
+            >
+              {option.shortLabel}
+            </button>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

@@ -20,6 +20,7 @@ type TurnManagerProps = {
   onToggleAction: (action: TurnAction) => void;
   onResetActions: () => void;
   onNextTurn: () => void;
+  readOnly?: boolean;
 };
 
 const TURN_ACTIONS: Array<{
@@ -40,23 +41,29 @@ export function TurnManager({
   onToggleAction,
   onResetActions,
   onNextTurn,
+  readOnly = false,
 }: TurnManagerProps) {
   return (
-    <section className="turn-manager" aria-labelledby="turn-manager-title">
+    <section
+      className={`turn-manager${readOnly ? ' turn-manager--readonly' : ''}`}
+      aria-labelledby="turn-manager-title"
+    >
       <header className="turn-manager__header">
         <div>
           <p className="section-kicker">TURN MANAGEMENT</p>
           <h2 id="turn-manager-title">ターン管理</h2>
         </div>
-        <button
-          className="icon-button"
-          type="button"
-          onClick={onResetActions}
-          aria-label="ターン内行動をリセット"
-          title="行動をリセット"
-        >
-          <RotateCcw aria-hidden="true" size={18} />
-        </button>
+        {!readOnly && (
+          <button
+            className="icon-button"
+            type="button"
+            onClick={onResetActions}
+            aria-label="ターン内行動をリセット"
+            title="行動をリセット"
+          >
+            <RotateCcw aria-hidden="true" size={18} />
+          </button>
+        )}
       </header>
 
       <div className="turn-manager__summary">
@@ -68,25 +75,20 @@ export function TurnManager({
           <span>現在の手番</span>
           <strong>PLAYER {activePlayer}</strong>
         </div>
-        <button className="turn-manager__next" type="button" onClick={onNextTurn}>
-          ターン終了
-          <ChevronRight aria-hidden="true" />
-        </button>
+        {!readOnly && (
+          <button className="turn-manager__next" type="button" onClick={onNextTurn}>
+            ターン終了
+            <ChevronRight aria-hidden="true" />
+          </button>
+        )}
       </div>
 
       <div className="turn-manager__actions" aria-label="ターン内行動">
         {TURN_ACTIONS.map(({ id, label, description, icon: Icon }) => {
           const isUsed = usedActions.has(id);
 
-          return (
-            <button
-              className={isUsed ? 'is-used' : undefined}
-              type="button"
-              key={id}
-              onClick={() => onToggleAction(id)}
-              aria-pressed={isUsed}
-              aria-label={`${label}を${isUsed ? '未使用に戻す' : '使用済みにする'}`}
-            >
+          const content = (
+            <>
               <span className="turn-manager__action-icon">
                 {isUsed ? <Check aria-hidden="true" /> : <Icon aria-hidden="true" />}
               </span>
@@ -94,6 +96,23 @@ export function TurnManager({
                 <strong>{label}</strong>
                 <small>{isUsed ? description : '未使用'}</small>
               </span>
+            </>
+          );
+
+          return readOnly ? (
+            <div className={`turn-manager__action${isUsed ? ' is-used' : ''}`} key={id}>
+              {content}
+            </div>
+          ) : (
+            <button
+              className={`turn-manager__action${isUsed ? ' is-used' : ''}`}
+              type="button"
+              key={id}
+              onClick={() => onToggleAction(id)}
+              aria-pressed={isUsed}
+              aria-label={`${label}を${isUsed ? '未使用に戻す' : '使用済みにする'}`}
+            >
+              {content}
             </button>
           );
         })}

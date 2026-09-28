@@ -114,6 +114,67 @@ select {
   background: rgb(15 23 35 / 82%);
 }
 
+:root:has(.app-shell--overlay),
+body:has(.app-shell--overlay) {
+  background: transparent;
+}
+
+.app-shell--overlay {
+  display: grid;
+  padding: 28px;
+  background: transparent;
+}
+
+.overlay-panel {
+  width: min(100%, 1440px);
+  align-self: end;
+}
+
+.overlay-panel .life-grid {
+  gap: 24px;
+}
+
+.overlay-panel .match-grid {
+  grid-template-columns: minmax(280px, 0.7fr) minmax(520px, 1.3fr);
+  gap: 24px;
+  align-items: stretch;
+  margin-top: 24px;
+}
+
+.overlay-panel .battle-status,
+.overlay-panel .turn-manager,
+.overlay-panel .life-counter {
+  border-color: rgb(139 164 190 / 40%);
+  background-color: rgb(9 15 24 / 88%);
+  box-shadow: 0 14px 42px rgb(0 0 0 / 36%);
+}
+
+.overlay-panel .battle-status__header {
+  height: 100%;
+}
+
+.overlay-panel .battle-status__current {
+  font-size: 18px;
+}
+
+.overlay-connection-status {
+  position: fixed;
+  top: 16px;
+  right: 18px;
+  margin: 0;
+  padding: 7px 11px;
+  border-radius: 999px;
+  color: #f3c75f;
+  background: rgb(7 12 20 / 78%);
+  font-size: 11px;
+}
+
+@media (max-width: 900px) {
+  .overlay-panel .match-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .connection-status--connecting > span,
 .connection-status--reconnecting > span {
   background: #f3c75f;

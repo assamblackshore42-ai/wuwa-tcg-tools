@@ -60,6 +60,15 @@
   margin-top: 18px;
 }
 
+.life-counter--readonly .life-counter__controls {
+  grid-template-columns: 1fr;
+  margin-top: 24px;
+}
+
+.life-counter--readonly .life-counter__value {
+  font-size: clamp(72px, 9vw, 112px);
+}
+
 .life-counter__controls > button {
   display: grid;
   width: 52px;

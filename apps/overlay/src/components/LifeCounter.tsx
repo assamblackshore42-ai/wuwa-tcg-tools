@@ -12,31 +12,50 @@ type LifeCounterProps = {
   onAdjust: (amount: -1 | 1) => void;
   onReset: () => void;
   tone: 'cyan' | 'magenta';
+  readOnly?: boolean;
 };
 
-export function LifeCounter({ label, life, onAdjust, onReset, tone }: LifeCounterProps) {
+export function LifeCounter({
+  label,
+  life,
+  onAdjust,
+  onReset,
+  tone,
+  readOnly = false,
+}: LifeCounterProps) {
   return (
-    <section className={`life-counter life-counter--${tone}`} aria-label={`${label}のライフ`}>
+    <section
+      className={`life-counter life-counter--${tone}${readOnly ? ' life-counter--readonly' : ''}`}
+      aria-label={`${label}のライフ`}
+    >
       <header className="life-counter__header">
         <div>
           <p className="section-kicker">LIFE POINT</p>
           <h2>{label}</h2>
         </div>
-        <button
-          className="icon-button"
-          type="button"
-          onClick={onReset}
-          aria-label={`${label}のライフを${INITIAL_LIFE}に戻す`}
-          title="初期値に戻す"
-        >
-          <RotateCcw aria-hidden="true" size={18} />
-        </button>
+        {!readOnly && (
+          <button
+            className="icon-button"
+            type="button"
+            onClick={onReset}
+            aria-label={`${label}のライフを${INITIAL_LIFE}に戻す`}
+            title="初期値に戻す"
+          >
+            <RotateCcw aria-hidden="true" size={18} />
+          </button>
+        )}
       </header>
 
       <div className="life-counter__controls">
-        <button type="button" onClick={() => onAdjust(-1)} aria-label={`${label}のライフを1減らす`}>
-          <Minus aria-hidden="true" />
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={() => onAdjust(-1)}
+            aria-label={`${label}のライフを1減らす`}
+          >
+            <Minus aria-hidden="true" />
+          </button>
+        )}
         <output
           className="life-counter__value"
           aria-live="polite"
@@ -44,9 +63,15 @@ export function LifeCounter({ label, life, onAdjust, onReset, tone }: LifeCounte
         >
           {life}
         </output>
-        <button type="button" onClick={() => onAdjust(1)} aria-label={`${label}のライフを1増やす`}>
-          <Plus aria-hidden="true" />
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={() => onAdjust(1)}
+            aria-label={`${label}のライフを1増やす`}
+          >
+            <Plus aria-hidden="true" />
+          </button>
+        )}
       </div>
     </section>
   );

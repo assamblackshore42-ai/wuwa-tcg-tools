@@ -31,6 +31,10 @@
   margin-top: 18px;
 }
 
+.turn-manager--readonly .turn-manager__summary {
+  grid-template-columns: auto 1fr;
+}
+
 .turn-manager__number,
 .turn-manager__active {
   display: flex;
@@ -110,7 +114,7 @@
   margin-top: 12px;
 }
 
-.turn-manager__actions > button {
+.turn-manager__action {
   display: flex;
   align-items: center;
   gap: 11px;
@@ -128,12 +132,16 @@
     background 140ms ease;
 }
 
+.turn-manager--readonly .turn-manager__action {
+  cursor: default;
+}
+
 .turn-manager__actions > button:hover {
   border-color: #625bc5;
   background: #151a30;
 }
 
-.turn-manager__actions > button.is-used {
+.turn-manager__action.is-used {
   border-color: #42b7ab;
   color: #e9fffd;
   background: rgb(29 103 96 / 27%);

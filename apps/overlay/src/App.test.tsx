@@ -23,6 +23,7 @@ describe('App', () => {
   const sendCommand = vi.fn().mockResolvedValue(undefined);
 
   beforeEach(() => {
+    window.history.pushState({}, '', '/');
     sendCommand.mockClear();
     useMatchStore.setState({
       match: structuredClone(INITIAL_MATCH),
@@ -97,5 +98,20 @@ describe('App', () => {
       'aria-pressed',
       'true',
     );
+  });
+
+  it('renders a read-only presentation at the overlay route', () => {
+    window.history.pushState({}, '', '/overlay');
+
+    render(<App />);
+
+    expect(screen.getByLabelText('PLAYER 1の現在ライフ')).toHaveTextContent('20');
+    expect(
+      screen.queryByRole('button', { name: 'PLAYER 1のライフを1減らす' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'P1 優勢' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'ターン終了' })).not.toBeInTheDocument();
+    expect(screen.getByText('戦況は互角')).toBeInTheDocument();
+    expect(screen.getByLabelText('現在のターン')).toHaveTextContent('1');
   });
 });
