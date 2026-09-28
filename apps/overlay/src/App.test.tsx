@@ -69,6 +69,14 @@ describe('App', () => {
     expect(sendCommand).toHaveBeenNthCalledWith(3, { type: 'end_turn' });
   });
 
+  it('sends undo as a server command', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: '直前の操作を元に戻す' }));
+
+    expect(sendCommand).toHaveBeenCalledWith({ type: 'undo' });
+  });
+
   it('renders newer state received from the server', () => {
     render(<App />);
 

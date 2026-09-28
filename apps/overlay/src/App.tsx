@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Undo2 } from 'lucide-react';
 
 import type { ApiBattleStatus, ApiTurnAction, MatchCommand } from './api/matchApi';
 import { BattleStatus, type BattleStatusValue } from './components/BattleStatus';
@@ -61,10 +62,21 @@ export function App() {
               <p className="eyebrow">WUTHERING WAVES TCG</p>
               <h1>対戦コントロール</h1>
             </div>
-            <span className={`connection-status connection-status--${connectionStatus}`}>
-              <span aria-hidden="true" />
-              {STATUS_LABELS[connectionStatus]}
-            </span>
+            <div className="app-header__actions">
+              <button
+                className="undo-button"
+                type="button"
+                onClick={() => dispatch({ type: 'undo' })}
+                aria-label="直前の操作を元に戻す"
+              >
+                <Undo2 aria-hidden="true" size={17} />
+                Undo
+              </button>
+              <span className={`connection-status connection-status--${connectionStatus}`}>
+                <span aria-hidden="true" />
+                {STATUS_LABELS[connectionStatus]}
+              </span>
+            </div>
           </header>
         )}
 

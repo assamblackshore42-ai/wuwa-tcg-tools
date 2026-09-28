@@ -55,6 +55,33 @@ select {
   letter-spacing: 0.02em;
 }
 
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.undo-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 7px 12px;
+  border: 1px solid #303d51;
+  border-radius: 10px;
+  color: #c7d1df;
+  background: rgb(13 20 31 / 80%);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.undo-button:hover {
+  border-color: #7770dc;
+  color: #fff;
+  background: rgb(75 68 159 / 24%);
+}
+
 .eyebrow {
   margin: 0;
   color: #62e8df;
@@ -251,6 +278,11 @@ body:has(.app-shell--overlay) {
   .app-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .app-header__actions {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .life-grid {

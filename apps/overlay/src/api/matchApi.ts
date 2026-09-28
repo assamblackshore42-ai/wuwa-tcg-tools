@@ -24,7 +24,8 @@ export type MatchCommand =
   | { type: 'toggle_turn_action'; action: ApiTurnAction }
   | { type: 'reset_turn_actions' }
   | { type: 'end_turn' }
-  | { type: 'reset_match' };
+  | { type: 'reset_match' }
+  | { type: 'undo' };
 
 type CommandResponse = {
   changed: boolean;
