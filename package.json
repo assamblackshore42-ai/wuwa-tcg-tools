@@ -8,6 +8,8 @@
   },
   "scripts": {
     "overlay:build": "pnpm --filter @wuwatcg/overlay build",
-    "overlay:dev": "pnpm --filter @wuwatcg/overlay dev"
+    "overlay:dev": "pnpm --filter @wuwatcg/overlay dev",
+    "overlay:tauri:build": "pnpm --filter @wuwatcg/overlay tauri:build",
+    "overlay:tauri:dev": "pnpm --filter @wuwatcg/overlay tauri:dev"
   }
 }

@@ -3,6 +3,7 @@ node_modules/
 .pnpm-store/
 *.tsbuildinfo
 apps/overlay/dist/
+apps/overlay/src-tauri/gen/
 apps/overlay/src-tauri/target/
 __pycache__/
 *.py[cod]
