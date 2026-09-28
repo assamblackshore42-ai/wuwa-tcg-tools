@@ -22,12 +22,15 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost; img-src 'self' asset: http://asset.localhost data:; style-src 'self' 'unsafe-inline'"
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:38471 ws://127.0.0.1:38471; img-src 'self' asset: http://asset.localhost data:; style-src 'self' 'unsafe-inline'"
     }
   },
   "bundle": {
     "active": true,
     "targets": ["nsis"],
+    "resources": {
+      "../dist/": "dist/"
+    },
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
     "windows": {
       "nsis": {

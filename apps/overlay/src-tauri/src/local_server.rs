@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use axum::Json;
@@ -11,6 +12,7 @@ use serde::Serialize;
 use tokio::net::TcpListener;
 use tokio::sync::{Mutex, broadcast};
 use tower_http::cors::CorsLayer;
+use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
 
 use crate::match_state::{MatchCommand, MatchState};
@@ -62,16 +64,26 @@ impl IntoResponse for ApiError {
 /// Builds the local API router around the supplied persistent match store.
 pub fn router(store: SqliteMatchStore) -> Router {
     let (updates, _) = broadcast::channel(UPDATE_CHANNEL_CAPACITY);
-    router_with_updates(store, updates)
+    build_router(store, updates, None)
 }
 
-fn router_with_updates(store: SqliteMatchStore, updates: broadcast::Sender<MatchState>) -> Router {
+/// Builds the local API and serves the React application as an SPA fallback.
+pub fn router_with_frontend(store: SqliteMatchStore, frontend_directory: PathBuf) -> Router {
+    let (updates, _) = broadcast::channel(UPDATE_CHANNEL_CAPACITY);
+    build_router(store, updates, Some(frontend_directory))
+}
+
+fn build_router(
+    store: SqliteMatchStore,
+    updates: broadcast::Sender<MatchState>,
+    frontend_directory: Option<PathBuf>,
+) -> Router {
     let cors = CorsLayer::new()
         .allow_origin(ALLOWED_ORIGINS.map(HeaderValue::from_static))
         .allow_methods([Method::GET, Method::POST])
         .allow_headers([header::CONTENT_TYPE]);
 
-    Router::new()
+    let router = Router::new()
         .route("/api/state", get(get_state))
         .route("/api/commands", post(post_command))
         .route("/ws", get(web_socket))
@@ -80,7 +92,14 @@ fn router_with_updates(store: SqliteMatchStore, updates: broadcast::Sender<Match
             updates,
         })
         .layer(cors)
-        .layer(TraceLayer::new_for_http())
+        .layer(TraceLayer::new_for_http());
+
+    if let Some(directory) = frontend_directory {
+        let index = directory.join("index.html");
+        router.fallback_service(ServeDir::new(directory).fallback(ServeFile::new(index)))
+    } else {
+        router
+    }
 }
 
 /// Serves the local API until the application shuts down or the listener fails.
@@ -88,8 +107,16 @@ fn router_with_updates(store: SqliteMatchStore, updates: broadcast::Sender<Match
 /// # Errors
 ///
 /// Returns an I/O error when accepting or serving a connection fails.
-pub async fn serve_local(listener: TcpListener, store: SqliteMatchStore) -> std::io::Result<()> {
-    serve(listener, router(store)).await
+pub async fn serve_local(
+    listener: TcpListener,
+    store: SqliteMatchStore,
+    frontend_directory: Option<PathBuf>,
+) -> std::io::Result<()> {
+    let app = match frontend_directory {
+        Some(directory) => router_with_frontend(store, directory),
+        None => router(store),
+    };
+    serve(listener, app).await
 }
 
 async fn get_state(State(api): State<ApiState>) -> Json<MatchState> {
@@ -168,6 +195,9 @@ async fn send_state(socket: &mut WebSocket, state: &MatchState) -> Result<(), ax
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
     use axum::body::{Body, to_bytes};
     use axum::http::Request;
     use serde_json::{Value, json};
@@ -268,7 +298,7 @@ mod tests {
     #[tokio::test]
     async fn broadcasts_each_state_changing_command() {
         let (updates, mut receiver) = broadcast::channel(UPDATE_CHANNEL_CAPACITY);
-        let app = router_with_updates(SqliteMatchStore::open_in_memory().unwrap(), updates);
+        let app = build_router(SqliteMatchStore::open_in_memory().unwrap(), updates, None);
 
         let response = app
             .oneshot(
@@ -291,6 +321,40 @@ mod tests {
         let state = receiver.recv().await.unwrap();
         assert_eq!(state.revision, 1);
         assert_eq!(state.turn.number, 2);
+    }
+
+    #[tokio::test]
+    async fn serves_the_spa_entry_point_for_the_overlay_route() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let directory = std::env::temp_dir().join(format!(
+            "wuwatcg-overlay-frontend-{}-{unique}",
+            std::process::id()
+        ));
+        fs::create_dir(&directory).unwrap();
+        fs::write(directory.join("index.html"), "<main>OBS overlay</main>").unwrap();
+        let app = router_with_frontend(
+            SqliteMatchStore::open_in_memory().unwrap(),
+            directory.clone(),
+        );
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/overlay")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body(), 64 * 1024).await.unwrap();
+        assert_eq!(body, "<main>OBS overlay</main>");
+
+        fs::remove_dir_all(directory).unwrap();
     }
 
     #[test]

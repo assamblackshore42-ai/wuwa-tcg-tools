@@ -1,4 +1,5 @@
 use std::fs;
+use std::path::PathBuf;
 
 use tauri::Manager;
 use tracing_subscriber::EnvFilter;
@@ -22,6 +23,15 @@ pub fn run() {
             let data_directory = app.path().app_data_dir()?;
             fs::create_dir_all(&data_directory)?;
             let store = match_store::SqliteMatchStore::open(data_directory.join("match.sqlite3"))?;
+            let resource_frontend = app.path().resource_dir()?.join("dist");
+            let development_frontend = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../dist");
+            let frontend_directory = if resource_frontend.is_dir() {
+                Some(resource_frontend)
+            } else if development_frontend.is_dir() {
+                Some(development_frontend)
+            } else {
+                None
+            };
 
             tauri::async_runtime::spawn(async move {
                 match tokio::net::TcpListener::bind(local_server::LOCAL_SERVER_ADDRESS).await {
@@ -30,7 +40,9 @@ pub fn run() {
                             address = local_server::LOCAL_SERVER_ADDRESS,
                             "local OBS overlay server started"
                         );
-                        if let Err(error) = local_server::serve_local(listener, store).await {
+                        if let Err(error) =
+                            local_server::serve_local(listener, store, frontend_directory).await
+                        {
                             tracing::error!(%error, "local OBS overlay server stopped");
                         }
                     }
