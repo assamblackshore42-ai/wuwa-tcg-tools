@@ -1,4 +1,5 @@
 pub mod match_state;
+pub mod match_store;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 /// Starts the desktop application event loop.
