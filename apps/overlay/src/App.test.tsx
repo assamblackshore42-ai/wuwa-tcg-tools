@@ -24,4 +24,13 @@ describe('App', () => {
 
     expect(screen.getByLabelText('PLAYER 2の現在ライフ')).toHaveTextContent('20');
   });
+
+  it('shows the selected battle status', () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'P1 優勢' }));
+
+    expect(screen.getByText('PLAYER 1が優勢')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'P1 優勢' })).toHaveAttribute('aria-pressed', 'true');
+  });
 });

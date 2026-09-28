@@ -1,11 +1,13 @@
 import { useState } from 'react';
 
+import { BattleStatus, type BattleStatusValue } from './components/BattleStatus';
 import { INITIAL_LIFE, LifeCounter } from './components/LifeCounter';
 import './styles.css';
 
 export function App() {
   const [playerOneLife, setPlayerOneLife] = useState(INITIAL_LIFE);
   const [playerTwoLife, setPlayerTwoLife] = useState(INITIAL_LIFE);
+  const [battleStatus, setBattleStatus] = useState<BattleStatusValue>('even');
 
   return (
     <main className="app-shell">
@@ -34,6 +36,10 @@ export function App() {
             onChange={setPlayerTwoLife}
             tone="magenta"
           />
+        </div>
+
+        <div className="match-grid">
+          <BattleStatus value={battleStatus} onChange={setBattleStatus} />
         </div>
       </div>
     </main>
