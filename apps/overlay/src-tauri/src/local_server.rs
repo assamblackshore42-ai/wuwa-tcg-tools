@@ -255,6 +255,50 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn undoes_the_latest_command_through_the_api() {
+        let app = router(SqliteMatchStore::open_in_memory().unwrap());
+        let adjust = json!({
+            "type": "adjust_life",
+            "player": "player_one",
+            "amount": -2
+        })
+        .to_string();
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/commands")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(adjust))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/api/commands")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(json!({ "type": "undo" }).to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body(), 64 * 1024).await.unwrap();
+        let payload: Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(payload["changed"], true);
+        assert_eq!(
+            payload["state"]["players"][0]["life"],
+            crate::match_state::INITIAL_LIFE
+        );
+        assert_eq!(payload["state"]["revision"], 2);
+    }
+
+    #[tokio::test]
     async fn rejects_an_invalid_command_without_changing_the_state() {
         let app = router(SqliteMatchStore::open_in_memory().unwrap());
         let invalid_response = app

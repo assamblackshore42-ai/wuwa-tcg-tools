@@ -134,6 +134,10 @@ impl SqliteMatchStore {
     /// Returns an error if the command is invalid or the resulting command/state
     /// pair cannot be serialized and committed.
     pub fn apply(&mut self, command: MatchCommand) -> Result<bool, MatchStoreError> {
+        if command == MatchCommand::Undo {
+            return self.undo();
+        }
+
         let mut next_state = self.state.clone();
         let changed = next_state.apply(command)?;
 
@@ -161,6 +165,48 @@ impl SqliteMatchStore {
         Ok(true)
     }
 
+    fn undo(&mut self) -> Result<bool, MatchStoreError> {
+        let transaction = self.connection.transaction()?;
+        let latest_id = transaction
+            .query_row(
+                "SELECT id FROM command_history ORDER BY id DESC LIMIT 1",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .optional()?;
+        let Some(latest_id) = latest_id else {
+            return Ok(false);
+        };
+
+        let previous_json = transaction
+            .query_row(
+                "SELECT state_json FROM command_history
+                 WHERE id < ?1 ORDER BY id DESC LIMIT 1",
+                [latest_id],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?;
+        let mut previous_state = previous_json.map_or_else(
+            || Ok(MatchState::default()),
+            |json| serde_json::from_str(&json),
+        )?;
+        previous_state.revision = self.state.revision.saturating_add(1);
+        let state_json = serde_json::to_string(&previous_state)?;
+
+        transaction.execute("DELETE FROM command_history WHERE id = ?1", [latest_id])?;
+        transaction.execute(
+            "UPDATE match_state
+             SET state_json = ?1,
+                 updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+             WHERE id = 1",
+            [state_json],
+        )?;
+        transaction.commit()?;
+
+        self.state = previous_state;
+        Ok(true)
+    }
+
     /// Returns the number of persisted state-changing commands.
     ///
     /// # Errors
@@ -179,7 +225,7 @@ mod tests {
     use std::fs;
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    use crate::match_state::{BattleStatus, PlayerId, TurnAction};
+    use crate::match_state::{BattleStatus, INITIAL_LIFE, PlayerId, TurnAction};
 
     use super::*;
 
@@ -265,5 +311,35 @@ mod tests {
 
         drop(restored);
         fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn undoes_commands_in_reverse_order_with_monotonic_revisions() {
+        let mut store = SqliteMatchStore::open_in_memory().unwrap();
+        store
+            .apply(MatchCommand::AdjustLife {
+                player: PlayerId::PlayerOne,
+                amount: -1,
+            })
+            .unwrap();
+        store
+            .apply(MatchCommand::SetBattleStatus {
+                status: BattleStatus::PlayerOneAdvantage,
+            })
+            .unwrap();
+
+        assert!(store.apply(MatchCommand::Undo).unwrap());
+        assert_eq!(store.state().players[0].life, 19);
+        assert_eq!(store.state().battle_status, BattleStatus::Even);
+        assert_eq!(store.state().revision, 3);
+        assert_eq!(store.history_len().unwrap(), 1);
+
+        assert!(store.apply(MatchCommand::Undo).unwrap());
+        assert_eq!(store.state().players[0].life, INITIAL_LIFE);
+        assert_eq!(store.state().revision, 4);
+        assert_eq!(store.history_len().unwrap(), 0);
+
+        assert!(!store.apply(MatchCommand::Undo).unwrap());
+        assert_eq!(store.state().revision, 4);
     }
 }

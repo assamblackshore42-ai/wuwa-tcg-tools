@@ -110,12 +110,14 @@ pub enum MatchCommand {
     ResetTurnActions,
     EndTurn,
     ResetMatch,
+    Undo,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MatchStateError {
     LifeOutOfRange { life: u16 },
     TurnNumberOverflow,
+    UndoRequiresHistory,
 }
 
 impl Display for MatchStateError {
@@ -128,6 +130,9 @@ impl Display for MatchStateError {
                 )
             }
             Self::TurnNumberOverflow => formatter.write_str("turn number reached its maximum"),
+            Self::UndoRequiresHistory => {
+                formatter.write_str("undo must be applied by a persistent match store")
+            }
         }
     }
 }
@@ -196,6 +201,7 @@ impl MatchState {
                 self.revision = revision;
                 changed
             }
+            MatchCommand::Undo => return Err(MatchStateError::UndoRequiresHistory),
         };
 
         if changed {
