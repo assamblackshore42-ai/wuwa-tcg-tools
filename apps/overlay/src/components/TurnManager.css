@@ -1,0 +1,197 @@
+.turn-manager {
+  padding: 22px;
+  border: 1px solid #263448;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 100% 0, rgb(112 103 255 / 10%), transparent 32%), rgb(15 23 35 / 92%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%);
+}
+
+.turn-manager__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.turn-manager h2 {
+  margin: 3px 0 0;
+  font-size: 18px;
+}
+
+.turn-manager .section-kicker {
+  color: #9c93ff;
+}
+
+.turn-manager__summary {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.turn-manager__number,
+.turn-manager__active {
+  display: flex;
+  min-height: 74px;
+  border: 1px solid #2b384b;
+  border-radius: 14px;
+  background: rgb(7 12 20 / 68%);
+}
+
+.turn-manager__number {
+  align-items: baseline;
+  gap: 10px;
+  padding: 13px 18px;
+}
+
+.turn-manager__number span,
+.turn-manager__active span {
+  color: #758398;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.turn-manager__number output {
+  color: #fff;
+  font-family: 'Bahnschrift', 'Segoe UI', sans-serif;
+  font-size: 40px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.turn-manager__active {
+  align-items: flex-start;
+  flex-direction: column;
+  justify-content: center;
+  padding: 12px 18px;
+}
+
+.turn-manager__active strong {
+  margin-top: 4px;
+  color: #62e8df;
+  font-size: 18px;
+}
+
+.turn-manager__active--player-2 strong {
+  color: #ff6fae;
+}
+
+.turn-manager__next {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 142px;
+  border: 1px solid #5e56d6;
+  border-radius: 14px;
+  color: #f4f2ff;
+  background: linear-gradient(135deg, #554fc5, #39348f);
+  box-shadow: 0 8px 24px rgb(67 59 174 / 20%);
+  cursor: pointer;
+  font-weight: 700;
+  transition:
+    filter 140ms ease,
+    transform 140ms ease;
+}
+
+.turn-manager__next:hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+}
+
+.turn-manager__actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.turn-manager__actions > button {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  min-height: 68px;
+  padding: 10px 12px;
+  border: 1px solid #2c394c;
+  border-radius: 14px;
+  color: #c5cede;
+  background: rgb(8 14 23 / 64%);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease;
+}
+
+.turn-manager__actions > button:hover {
+  border-color: #625bc5;
+  background: #151a30;
+}
+
+.turn-manager__actions > button.is-used {
+  border-color: #42b7ab;
+  color: #e9fffd;
+  background: rgb(29 103 96 / 27%);
+}
+
+.turn-manager__action-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 11px;
+  color: #a69fff;
+  background: rgb(95 86 210 / 13%);
+}
+
+.is-used .turn-manager__action-icon {
+  color: #65e0d3;
+  background: rgb(74 209 196 / 14%);
+}
+
+.turn-manager__action-icon svg {
+  width: 20px;
+}
+
+.turn-manager__actions strong,
+.turn-manager__actions small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.turn-manager__actions strong {
+  font-size: 13px;
+}
+
+.turn-manager__actions small {
+  margin-top: 3px;
+  color: #758398;
+  font-size: 10px;
+}
+
+.turn-manager__actions .is-used small {
+  color: #71bdb6;
+}
+
+@media (max-width: 700px) {
+  .turn-manager__summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .turn-manager__next {
+    min-height: 50px;
+    grid-column: 1 / -1;
+  }
+
+  .turn-manager__actions {
+    grid-template-columns: 1fr;
+  }
+}
