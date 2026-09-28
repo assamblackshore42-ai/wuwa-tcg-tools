@@ -37,3 +37,6 @@ unsafe_code = "forbid"
 [lints.clippy]
 all = "warn"
 pedantic = "warn"
+
+[dev-dependencies]
+tower = { version = "0.5.3", features = ["util"] }
