@@ -5,6 +5,9 @@ node_modules/
 apps/overlay/dist/
 apps/overlay/src-tauri/gen/
 apps/overlay/src-tauri/target/
+apps/overlay/coverage/
+apps/overlay/playwright-report/
+apps/overlay/test-results/
 __pycache__/
 *.py[cod]
 *.pyd

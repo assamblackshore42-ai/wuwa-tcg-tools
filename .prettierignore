@@ -1,0 +1,7 @@
+**/dist
+**/node_modules
+**/playwright-report
+**/src-tauri/gen
+**/src-tauri/target
+**/test-results
+pnpm-lock.yaml

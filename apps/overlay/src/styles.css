@@ -1,7 +1,7 @@
 :root {
   color: #eef8fa;
   background: #101820;
-  font-family: "Segoe UI", "Yu Gothic UI", sans-serif;
+  font-family: 'Segoe UI', 'Yu Gothic UI', sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -27,9 +27,7 @@ select {
   min-height: 100vh;
   place-items: center;
   padding: 24px;
-  background:
-    radial-gradient(circle at top, rgb(38 126 115 / 28%), transparent 46%),
-    #101820;
+  background: radial-gradient(circle at top, rgb(38 126 115 / 28%), transparent 46%), #101820;
 }
 
 .setup-card {
