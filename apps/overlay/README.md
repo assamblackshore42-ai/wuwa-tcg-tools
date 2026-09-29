@@ -1,5 +1,11 @@
 # OBSオーバーレイ開発環境
 
+## ライセンス
+
+`apps/overlay/` 内の自作コードは[MITライセンス](LICENSE)で公開しています。
+第三者の素材・依存ライブラリには、それぞれのライセンスが適用されます。
+使用しているLucideアイコンの表記は[第三者ライセンス表記](../../THIRD_PARTY_NOTICES.md)を参照してください。
+
 対戦管理用のWindowsアプリとOBSブラウザソースを、Tauri 2、React、TypeScript、Rustで構築します。
 
 ## オーバーレイの仕組み
@@ -96,3 +102,18 @@ pnpm overlay:tauri:build
 ```
 
 NSISインストーラーは`apps/overlay/src-tauri/target/release/bundle/nsis`へ生成されます。
+
+## Windows向けリリース
+
+`.github/workflows/overlay-release.yml`は`overlay-v1.2.3`形式のタグがpushされると、Windows x64向けNSISインストーラーをビルドし、タグと同名のGitHub Releaseをドラフトとして作成します。インストーラーを確認してからReleaseを公開してください。タグのバージョンは`apps/overlay/package.json`、`apps/overlay/src-tauri/tauri.conf.json`、`apps/overlay/src-tauri/Cargo.toml`と一致させます。
+
+例えば現在のバージョンを配布する場合は、変更をmainへ反映した後、次を実行します。
+
+```powershell
+git tag overlay-v0.1.0
+git push origin overlay-v0.1.0
+```
+
+GitHub Actionsの`OBS overlay release`が成功したら、ドラフトReleaseから`*-setup.exe`をダウンロードし、Windowsでインストールと起動、OBSブラウザソースの`http://127.0.0.1:38471/overlay`を確認してから公開します。利用者が必要なのはインストーラーで、Node.js、pnpm、Rustは不要です。WebView2 Runtimeがない環境では、Tauriのインストーラーが導入時に取得します。
+
+現時点ではコード署名を設定していません。公開配布時のWindows SmartScreen警告を減らすには、別途コード署名証明書と署名工程が必要です。
