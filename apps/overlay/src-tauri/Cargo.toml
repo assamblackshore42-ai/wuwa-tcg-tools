@@ -2,7 +2,7 @@
 name = "wuwatcg-overlay"
 version = "0.1.0"
 description = "OBS overlay for Wuthering Waves: Versus match management"
-authors = ["WuwaTCG Tools contributors"]
+authors = ["blackmax1886"]
 edition = "2024"
 rust-version = "1.98.1"
 
