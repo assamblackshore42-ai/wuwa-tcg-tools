@@ -1,0 +1,66 @@
+name: OBS overlay release
+
+on:
+  push:
+    tags:
+      - 'overlay-v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: overlay-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Check tag and application versions
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF_NAME -notmatch '^overlay-v(\d+\.\d+\.\d+)$') {
+            throw 'Tag must have the form overlay-v1.2.3.'
+          }
+          $version = $Matches[1]
+          $packageVersion = (Get-Content apps/overlay/package.json -Raw | ConvertFrom-Json).version
+          $tauriVersion = (Get-Content apps/overlay/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $cargoVersion = (Select-String -Path apps/overlay/src-tauri/Cargo.toml -Pattern '^version = "([^"]+)"$' | Select-Object -First 1).Matches.Groups[1].Value
+          if ($version -ne $packageVersion -or $version -ne $tauriVersion -or $version -ne $cargoVersion) {
+            throw "Tag version $version does not match package.json ($packageVersion), tauri.conf.json ($tauriVersion), and Cargo.toml ($cargoVersion)."
+          }
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check frontend
+        run: pnpm overlay:check
+
+      - name: Build NSIS installer
+        run: pnpm overlay:tauri:build
+
+      - name: Create draft release with installer
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $installers = @(Get-ChildItem 'apps/overlay/src-tauri/target/release/bundle/nsis' -Filter '*-setup.exe' -File)
+          if ($installers.Count -ne 1) {
+            throw "Expected one NSIS installer, found $($installers.Count)."
+          }
+          gh release create $env:GITHUB_REF_NAME $installers[0].FullName --draft --verify-tag --title $env:GITHUB_REF_NAME --notes 'Windows x64 installer. Review the installer before publishing this release.'
