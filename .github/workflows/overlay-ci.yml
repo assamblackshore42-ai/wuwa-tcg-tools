@@ -53,6 +53,9 @@ jobs:
       - name: Check Rust formatting
         run: pnpm overlay:rust:format
 
+      - name: Build frontend
+        run: pnpm overlay:build
+
       - name: Lint Rust
         run: pnpm overlay:rust:check
 
