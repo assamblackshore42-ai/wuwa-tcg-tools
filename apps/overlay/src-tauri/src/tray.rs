@@ -5,7 +5,7 @@ use tauri::{App, Manager};
 const SHOW_CONTROL_ID: &str = "show-control";
 const QUIT_ID: &str = "quit";
 
-/// Creates the desktop tray menu used while the control window is hidden.
+/// Creates the desktop tray menu for showing the control window or quitting the app.
 ///
 /// # Errors
 ///

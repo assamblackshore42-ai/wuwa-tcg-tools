@@ -64,11 +64,10 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                api.prevent_close();
-                if let Err(error) = window.hide() {
-                    tracing::error!(%error, "failed to hide control window");
-                }
+            if window.label() == "main"
+                && matches!(event, tauri::WindowEvent::CloseRequested { .. })
+            {
+                window.app_handle().exit(0);
             }
         })
         .run(tauri::generate_context!())
