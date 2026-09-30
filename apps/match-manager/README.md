@@ -8,7 +8,7 @@ OBSオーバーレイは対戦状況を配信・録画に表示するための�
 
 ## 利用方法
 
-1. Releaseから `wuwa-tcg-match-manager_0.1.3_x64-setup.exe` をダウンロードしてインストールします。
+1. Releaseから `wuwa-tcg-match-manager_0.1.4_x64-setup.exe` をダウンロードしてインストールします。
 2. match-managerを起動し、操作画面でライフ・戦況・ターンを管理します。「新しい対戦」でリセットし、「Undo」で直前の操作を戻せます。
 3. 対戦管理だけならOBS Studioのインストールや設定は不要です。対戦状態と操作履歴はPC内に保存されます。
 
@@ -121,7 +121,7 @@ pnpm match-manager:tauri:build
 ```
 
 NSISインストーラーは`apps/match-manager/src-tauri/target/release/bundle/nsis`へ生成されます。
-ファイル名は `wuwa-tcg-match-manager_<バージョン>_x64-setup.exe`（現在は `wuwa-tcg-match-manager_0.1.3_x64-setup.exe`）です。
+ファイル名は `wuwa-tcg-match-manager_<バージョン>_x64-setup.exe`（現在は `wuwa-tcg-match-manager_0.1.4_x64-setup.exe`）です。
 Tauriの `productName` に配布名を設定し、ローカルビルドとReleaseの両方でアプリ名を含むインストーラーを生成します。
 
 ## Windows向けリリース
@@ -131,8 +131,8 @@ Tauriの `productName` に配布名を設定し、ローカルビルドとReleas
 例えば現在のバージョンを配布する場合は、変更をmainへ反映した後、次を実行します。
 
 ```powershell
-git tag match-manager-v0.1.3
-git push origin match-manager-v0.1.3
+git tag match-manager-v0.1.4
+git push origin match-manager-v0.1.4
 ```
 
 WebView2 Runtimeがない環境では、Tauriのインストーラーが導入時に取得します。

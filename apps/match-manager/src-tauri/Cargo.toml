@@ -1,6 +1,6 @@
 [package]
 name = "wuwa-tcg-match-manager"
-version = "0.1.3"
+version = "0.1.4"
 description = "Match manager for Wuthering Waves: Versus with an OBS overlay"
 authors = ["blackmax1886"]
 edition = "2024"
