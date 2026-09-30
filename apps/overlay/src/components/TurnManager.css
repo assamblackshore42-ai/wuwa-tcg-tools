@@ -3,7 +3,12 @@
   border: 1px solid #263448;
   border-radius: 20px;
   background:
-    radial-gradient(circle at 100% 0, rgb(112 103 255 / 10%), transparent 32%), rgb(15 23 35 / 92%);
+    radial-gradient(
+      circle at 100% 0,
+      color-mix(in srgb, var(--color-turn-accent) 10%, transparent),
+      transparent 32%
+    ),
+    color-mix(in srgb, var(--color-surface) 92%, transparent);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%);
 }
 
@@ -20,7 +25,7 @@
 }
 
 .turn-manager .section-kicker {
-  color: #9c93ff;
+  color: var(--color-turn-accent);
 }
 
 .turn-manager__summary {
@@ -41,7 +46,7 @@
   min-height: 74px;
   border: 1px solid #2b384b;
   border-radius: 14px;
-  background: rgb(7 12 20 / 68%);
+  background: color-mix(in srgb, var(--color-surface) 68%, black);
 }
 
 .turn-manager__number {
@@ -52,14 +57,14 @@
 
 .turn-manager__number span,
 .turn-manager__active span {
-  color: #758398;
+  color: var(--color-neutral);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.14em;
 }
 
 .turn-manager__number output {
-  color: #fff;
+  color: var(--color-text);
   font-family: 'Bahnschrift', 'Segoe UI', sans-serif;
   font-size: 40px;
   font-variant-numeric: tabular-nums;
@@ -76,12 +81,12 @@
 
 .turn-manager__active strong {
   margin-top: 4px;
-  color: #62e8df;
+  color: var(--color-player-1);
   font-size: 18px;
 }
 
 .turn-manager__active--player-2 strong {
-  color: #ff6fae;
+  color: var(--color-player-2);
 }
 
 .turn-manager__next {
@@ -92,8 +97,12 @@
   min-width: 142px;
   border: 1px solid #5e56d6;
   border-radius: 14px;
-  color: #f4f2ff;
-  background: linear-gradient(135deg, #554fc5, #39348f);
+  color: var(--color-text);
+  background: linear-gradient(
+    135deg,
+    var(--color-turn-accent),
+    color-mix(in srgb, var(--color-turn-accent) 55%, black)
+  );
   box-shadow: 0 8px 24px rgb(67 59 174 / 20%);
   cursor: pointer;
   font-weight: 700;
@@ -123,8 +132,8 @@
   padding: 10px 12px;
   border: 1px solid #2c394c;
   border-radius: 14px;
-  color: #c5cede;
-  background: rgb(8 14 23 / 64%);
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-surface) 64%, black);
   cursor: pointer;
   text-align: left;
   transition:
@@ -137,14 +146,14 @@
 }
 
 .turn-manager__actions > button:hover {
-  border-color: #625bc5;
+  border-color: var(--color-turn-accent);
   background: #151a30;
 }
 
 .turn-manager__action.is-used {
-  border-color: #42b7ab;
-  color: #e9fffd;
-  background: rgb(29 103 96 / 27%);
+  border-color: var(--color-used);
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-used) 27%, transparent);
 }
 
 .turn-manager__action-icon {
@@ -154,13 +163,13 @@
   flex: 0 0 auto;
   place-items: center;
   border-radius: 11px;
-  color: #a69fff;
-  background: rgb(95 86 210 / 13%);
+  color: var(--color-turn-accent);
+  background: color-mix(in srgb, var(--color-turn-accent) 13%, transparent);
 }
 
 .is-used .turn-manager__action-icon {
-  color: #65e0d3;
-  background: rgb(74 209 196 / 14%);
+  color: var(--color-used);
+  background: color-mix(in srgb, var(--color-used) 14%, transparent);
 }
 
 .turn-manager__action-icon svg {
@@ -181,12 +190,12 @@
 
 .turn-manager__actions small {
   margin-top: 3px;
-  color: #758398;
+  color: var(--color-neutral);
   font-size: 10px;
 }
 
 .turn-manager__actions .is-used small {
-  color: #71bdb6;
+  color: var(--color-used);
 }
 
 @media (max-width: 700px) {

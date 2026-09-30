@@ -1,5 +1,5 @@
 .life-counter {
-  --player-color: #62e8df;
+  --player-color: var(--color-player-1);
   position: relative;
   overflow: hidden;
   min-width: 0;
@@ -12,7 +12,7 @@
       color-mix(in srgb, var(--player-color) 12%, transparent),
       transparent 52%
     ),
-    rgb(15 23 35 / 92%);
+    color-mix(in srgb, var(--color-surface) 92%, transparent);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%);
 }
 
@@ -29,7 +29,7 @@
 }
 
 .life-counter--magenta {
-  --player-color: #ff6fae;
+  --player-color: var(--color-player-2);
 }
 
 .life-counter__header {
@@ -41,7 +41,7 @@
 
 .life-counter h2 {
   margin: 3px 0 0;
-  color: #f5f8ff;
+  color: var(--color-text);
   font-size: 18px;
   font-weight: 700;
 }
@@ -96,7 +96,7 @@
 }
 
 .life-counter__value {
-  color: #fff;
+  color: var(--color-text);
   font-family: 'Bahnschrift', 'Segoe UI', sans-serif;
   font-size: clamp(54px, 8vw, 74px);
   font-variant-numeric: tabular-nums;

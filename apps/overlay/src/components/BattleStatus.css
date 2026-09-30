@@ -1,5 +1,5 @@
 .battle-status {
-  --status-color: #94a3b8;
+  --status-color: var(--color-neutral);
   padding: 22px;
   border: 1px solid #263448;
   border-radius: 20px;
@@ -9,16 +9,16 @@
       color-mix(in srgb, var(--status-color) 8%, transparent),
       transparent 58%
     ),
-    rgb(15 23 35 / 92%);
+    color-mix(in srgb, var(--color-surface) 92%, transparent);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%);
 }
 
 .battle-status--player-one {
-  --status-color: #62e8df;
+  --status-color: var(--color-player-1);
 }
 
 .battle-status--player-two {
-  --status-color: #ff6fae;
+  --status-color: var(--color-player-2);
 }
 
 .battle-status__header {
@@ -34,7 +34,7 @@
 }
 
 .battle-status .section-kicker {
-  color: #8e9db1;
+  color: var(--color-neutral);
 }
 
 .battle-status__current {
@@ -65,14 +65,14 @@
   padding: 5px;
   border: 1px solid #263448;
   border-radius: 14px;
-  background: rgb(7 12 20 / 72%);
+  background: color-mix(in srgb, var(--color-surface) 72%, black);
 }
 
 .battle-status__options button {
   min-height: 42px;
   border: 1px solid transparent;
   border-radius: 10px;
-  color: #8997aa;
+  color: var(--color-neutral);
   background: transparent;
   cursor: pointer;
   font-size: 13px;

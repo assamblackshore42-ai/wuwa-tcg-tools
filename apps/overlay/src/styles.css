@@ -1,5 +1,13 @@
 :root {
-  color: #edf4ff;
+  --color-player-1: #46E8F6;
+  --color-player-2: #E0181B;
+  --color-turn-accent: #9c93ff;
+  --color-used: #42b7ab;
+  --color-warning: #f3c75f;
+  --color-neutral: #94a3b8;
+  --color-surface: #0f1723;
+  --color-text: #edf4ff;
+  color: var(--color-text);
   background: #070b12;
   font-family: 'Segoe UI', 'Yu Gothic UI', sans-serif;
   font-synthesis: none;
@@ -17,7 +25,7 @@ body {
 }
 
 button:focus-visible {
-  outline: 2px solid #77f3e9;
+  outline: 2px solid var(--color-player-1);
   outline-offset: 3px;
 }
 
@@ -165,7 +173,7 @@ select {
 
 .eyebrow {
   margin: 0;
-  color: #62e8df;
+  color: var(--color-player-1);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.2em;
@@ -187,14 +195,14 @@ select {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #62e8df;
-  box-shadow: 0 0 10px #62e8df;
+  background: var(--color-player-1);
+  box-shadow: 0 0 10px var(--color-player-1);
 }
 
 .connection-status--connecting > span,
 .connection-status--reconnecting > span {
-  background: #f3c75f;
-  box-shadow: 0 0 10px #f3c75f;
+  background: var(--color-warning);
+  box-shadow: 0 0 10px var(--color-warning);
 }
 
 .connection-status--error > span {
@@ -218,8 +226,8 @@ select {
   place-items: center;
   border: 1px solid #263448;
   border-radius: 20px;
-  color: #8795a9;
-  background: rgb(15 23 35 / 82%);
+  color: var(--color-neutral);
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
 }
 
 :root:has(.app-shell--overlay),
@@ -253,7 +261,7 @@ body:has(.app-shell--overlay) {
 .overlay-panel .turn-manager,
 .overlay-panel .life-counter {
   border-color: rgb(139 164 190 / 40%);
-  background-color: rgb(9 15 24 / 88%);
+  background-color: color-mix(in srgb, var(--color-surface) 88%, transparent);
   box-shadow: 0 14px 42px rgb(0 0 0 / 36%);
 }
 
@@ -272,8 +280,8 @@ body:has(.app-shell--overlay) {
   margin: 0;
   padding: 7px 11px;
   border-radius: 999px;
-  color: #f3c75f;
-  background: rgb(7 12 20 / 78%);
+  color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-surface) 78%, transparent);
   font-size: 11px;
 }
 
@@ -285,8 +293,8 @@ body:has(.app-shell--overlay) {
 
 .connection-status--connecting > span,
 .connection-status--reconnecting > span {
-  background: #f3c75f;
-  box-shadow: 0 0 10px #f3c75f;
+  background: var(--color-warning);
+  box-shadow: 0 0 10px var(--color-warning);
 }
 
 .connection-status--error > span {
