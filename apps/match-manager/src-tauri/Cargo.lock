@@ -5094,8 +5094,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "wuwatcg-overlay"
-version = "0.1.3"
+name = "wuwa-tcg-match-manager"
+version = "0.1.4"
 dependencies = [
  "axum",
  "rusqlite",

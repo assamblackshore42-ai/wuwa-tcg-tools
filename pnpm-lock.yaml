@@ -8,7 +8,7 @@ importers:
 
   .: {}
 
-  apps/overlay:
+  apps/match-manager:
     dependencies:
       '@tauri-apps/api':
         specifier: ^2.12.0

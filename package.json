@@ -7,14 +7,14 @@
     "pnpm": ">=11 <12"
   },
   "scripts": {
-    "overlay:build": "pnpm --filter @wuwatcg/overlay build",
-    "overlay:check": "pnpm --filter @wuwatcg/overlay check",
-    "overlay:dev": "pnpm --filter @wuwatcg/overlay dev",
-    "overlay:e2e": "pnpm --filter @wuwatcg/overlay test:e2e",
-    "overlay:rust:check": "cargo clippy --manifest-path apps/overlay/src-tauri/Cargo.toml --all-targets --all-features -- -D warnings",
-    "overlay:rust:format": "cargo fmt --manifest-path apps/overlay/src-tauri/Cargo.toml --check",
-    "overlay:tauri:build": "pnpm --filter @wuwatcg/overlay tauri:build",
-    "overlay:tauri:check": "pnpm --filter @wuwatcg/overlay tauri:check",
-    "overlay:tauri:dev": "pnpm --filter @wuwatcg/overlay tauri:dev"
+    "match-manager:build": "pnpm --filter @wuwatcg/match-manager build",
+    "match-manager:check": "pnpm --filter @wuwatcg/match-manager check",
+    "match-manager:dev": "pnpm --filter @wuwatcg/match-manager dev",
+    "match-manager:e2e": "pnpm --filter @wuwatcg/match-manager test:e2e",
+    "match-manager:rust:check": "cargo clippy --manifest-path apps/match-manager/src-tauri/Cargo.toml --all-targets --all-features -- -D warnings",
+    "match-manager:rust:format": "cargo fmt --manifest-path apps/match-manager/src-tauri/Cargo.toml --check",
+    "match-manager:tauri:build": "pnpm --filter @wuwatcg/match-manager tauri:build",
+    "match-manager:tauri:check": "pnpm --filter @wuwatcg/match-manager tauri:check",
+    "match-manager:tauri:dev": "pnpm --filter @wuwatcg/match-manager tauri:dev"
   }
 }

@@ -1,5 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    wuwatcg_overlay_lib::run();
+    wuwa_tcg_match_manager_lib::run();
 }

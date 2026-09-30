@@ -43,19 +43,19 @@ pub fn run() {
                     Ok(listener) => {
                         tracing::info!(
                             address = local_server::LOCAL_SERVER_ADDRESS,
-                            "local OBS overlay server started"
+                            "local match manager server started"
                         );
                         if let Err(error) =
                             local_server::serve_local(listener, store, frontend_directory).await
                         {
-                            tracing::error!(%error, "local OBS overlay server stopped");
+                            tracing::error!(%error, "local match manager server stopped");
                         }
                     }
                     Err(error) => {
                         tracing::error!(
                             %error,
                             address = local_server::LOCAL_SERVER_ADDRESS,
-                            "failed to bind local OBS overlay server"
+                            "failed to bind local match manager server"
                         );
                     }
                 }
@@ -71,5 +71,5 @@ pub fn run() {
             }
         })
         .run(tauri::generate_context!())
-        .expect("failed to run the OBS overlay application");
+        .expect("failed to run the match manager application");
 }

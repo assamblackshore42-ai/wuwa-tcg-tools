@@ -1,10 +1,10 @@
-name: OBS overlay CI
+name: Match manager CI
 
 on:
   pull_request:
     paths:
-      - '.github/workflows/overlay-ci.yml'
-      - 'apps/overlay/**'
+      - '.github/workflows/match-manager-ci.yml'
+      - 'apps/match-manager/**'
       - '.node-version'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -13,8 +13,8 @@ on:
   push:
     branches: [main]
     paths:
-      - '.github/workflows/overlay-ci.yml'
-      - 'apps/overlay/**'
+      - '.github/workflows/match-manager-ci.yml'
+      - 'apps/match-manager/**'
       - '.node-version'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -45,19 +45,19 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Check frontend
-        run: pnpm overlay:check
+        run: pnpm match-manager:check
 
       - name: Run browser smoke test
-        run: pnpm overlay:e2e
+        run: pnpm match-manager:e2e
 
       - name: Check Rust formatting
-        run: pnpm overlay:rust:format
+        run: pnpm match-manager:rust:format
 
       - name: Build frontend
-        run: pnpm overlay:build
+        run: pnpm match-manager:build
 
       - name: Lint Rust
-        run: pnpm overlay:rust:check
+        run: pnpm match-manager:rust:check
 
       - name: Build Tauri application
-        run: pnpm overlay:tauri:check
+        run: pnpm match-manager:tauri:check

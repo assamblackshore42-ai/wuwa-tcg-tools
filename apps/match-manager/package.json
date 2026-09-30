@@ -1,6 +1,6 @@
 {
-  "name": "@wuwatcg/overlay",
-  "version": "0.1.3",
+  "name": "@wuwatcg/match-manager",
+  "version": "0.1.4",
   "private": true,
   "type": "module",
   "scripts": {

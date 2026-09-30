@@ -374,7 +374,7 @@ mod tests {
             .unwrap()
             .as_nanos();
         let directory = std::env::temp_dir().join(format!(
-            "wuwatcg-overlay-frontend-{}-{unique}",
+            "wuwa-tcg-match-manager-frontend-{}-{unique}",
             std::process::id()
         ));
         fs::create_dir(&directory).unwrap();
