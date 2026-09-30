@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "鳴潮：対決 オーバーレイ",
+  "productName": "wuwa-tcg-match-manager",
   "version": "0.1.3",
   "identifier": "com.wuwatcg.overlay",
   "build": {
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "鳴潮：対決 オーバーレイ",
+        "title": "鳴潮：対決 match-manager",
         "width": 960,
         "height": 720,
         "minWidth": 720,

@@ -438,7 +438,7 @@ mod tests {
             .unwrap()
             .as_nanos();
         let path = std::env::temp_dir().join(format!(
-            "wuwatcg-overlay-store-{}-{unique}.sqlite3",
+            "wuwa-tcg-match-manager-store-{}-{unique}.sqlite3",
             std::process::id()
         ));
 

@@ -18,7 +18,7 @@ pub fn setup(app: &App) -> tauri::Result<()> {
 
     let mut builder = TrayIconBuilder::with_id("main-tray")
         .menu(&menu)
-        .tooltip("鳴潮：対決 オーバーレイ")
+        .tooltip("鳴潮：対決 match-manager")
         .on_menu_event(|app, event| match event.id().as_ref() {
             SHOW_CONTROL_ID => show_control_window(app),
             QUIT_ID => app.exit(0),

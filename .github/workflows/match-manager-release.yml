@@ -1,15 +1,15 @@
-name: OBS overlay release
+name: Match manager release
 
 on:
   push:
     tags:
-      - 'overlay-v*'
+      - 'match-manager-v*'
 
 permissions:
   contents: read
 
 concurrency:
-  group: overlay-release-${{ github.ref }}
+  group: match-manager-release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -34,13 +34,13 @@ jobs:
       - name: Check tag and application versions
         shell: pwsh
         run: |
-          if ($env:GITHUB_REF_NAME -notmatch '^overlay-v(\d+\.\d+\.\d+)$') {
-            throw 'Tag must have the form overlay-v1.2.3.'
+          if ($env:GITHUB_REF_NAME -notmatch '^match-manager-v(\d+\.\d+\.\d+)$') {
+            throw 'Tag must have the form match-manager-v1.2.3.'
           }
           $version = $Matches[1]
-          $packageVersion = (Get-Content apps/overlay/package.json -Raw | ConvertFrom-Json).version
-          $tauriVersion = (Get-Content apps/overlay/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
-          $cargoVersion = (Select-String -Path apps/overlay/src-tauri/Cargo.toml -Pattern '^version = "([^"]+)"$' | Select-Object -First 1).Matches.Groups[1].Value
+          $packageVersion = (Get-Content apps/match-manager/package.json -Raw | ConvertFrom-Json).version
+          $tauriVersion = (Get-Content apps/match-manager/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $cargoVersion = (Select-String -Path apps/match-manager/src-tauri/Cargo.toml -Pattern '^version = "([^"]+)"$' | Select-Object -First 1).Matches.Groups[1].Value
           if ($version -ne $packageVersion -or $version -ne $tauriVersion -or $version -ne $cargoVersion) {
             throw "Tag version $version does not match package.json ($packageVersion), tauri.conf.json ($tauriVersion), and Cargo.toml ($cargoVersion)."
           }
@@ -49,18 +49,23 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Check frontend
-        run: pnpm overlay:check
+        run: pnpm match-manager:check
 
       - name: Build NSIS installer
-        run: pnpm overlay:tauri:build
+        run: pnpm match-manager:tauri:build
 
       - name: Create draft release with installer
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $installers = @(Get-ChildItem 'apps/overlay/src-tauri/target/release/bundle/nsis' -Filter '*-setup.exe' -File)
+          $installers = @(Get-ChildItem 'apps/match-manager/src-tauri/target/release/bundle/nsis' -Filter '*-setup.exe' -File)
           if ($installers.Count -ne 1) {
             throw "Expected one NSIS installer, found $($installers.Count)."
+          }
+          $version = (Get-Content apps/match-manager/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $expectedName = "wuwa-tcg-match-manager_${version}_x64-setup.exe"
+          if ($installers[0].Name -ne $expectedName) {
+            throw "Expected installer $expectedName, found $($installers[0].Name)."
           }
           gh release create $env:GITHUB_REF_NAME $installers[0].FullName --draft --verify-tag --title $env:GITHUB_REF_NAME --notes 'Windows x64 installer. Review the installer before publishing this release.'
