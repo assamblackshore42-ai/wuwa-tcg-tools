@@ -24,5 +24,6 @@ dist/
 Thumbs.db
 Desktop.ini
 
-# Copyrighted card images
-assets/cards/*.webp
+# Keep locally generated card data out of the repository
+assets/cards/*
+!assets/cards/README.md
