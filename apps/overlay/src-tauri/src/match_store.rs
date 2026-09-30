@@ -6,7 +6,8 @@ use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::match_state::{MatchCommand, MatchState, MatchStateError};
 
-const SCHEMA_VERSION: i64 = 1;
+const SCHEMA_VERSION: i64 = 2;
+const MAX_RETAINED_MATCHES: i64 = 50;
 
 pub struct SqliteMatchStore {
     connection: Connection,
@@ -80,10 +81,11 @@ impl SqliteMatchStore {
         Self::from_connection(connection)
     }
 
-    fn from_connection(connection: Connection) -> Result<Self, MatchStoreError> {
-        connection.execute_batch(
-            "PRAGMA foreign_keys = ON;
-             CREATE TABLE IF NOT EXISTS match_state (
+    fn from_connection(mut connection: Connection) -> Result<Self, MatchStoreError> {
+        connection.execute_batch("PRAGMA foreign_keys = ON;")?;
+        let transaction = connection.transaction()?;
+        transaction.execute_batch(
+            "CREATE TABLE IF NOT EXISTS match_state (
                  id INTEGER PRIMARY KEY CHECK (id = 1),
                  state_json TEXT NOT NULL,
                  updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
@@ -93,9 +95,22 @@ impl SqliteMatchStore {
                  command_json TEXT NOT NULL,
                  state_json TEXT NOT NULL,
                  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
-             );",
+             );
+             CREATE TABLE IF NOT EXISTS history_baseline (
+                 id INTEGER PRIMARY KEY CHECK (id = 1),
+                 state_json TEXT NOT NULL
+             );
+             CREATE INDEX IF NOT EXISTS command_history_match_resets
+                 ON command_history (id)
+                 WHERE json_extract(command_json, '$.type') = 'reset_match';",
         )?;
-        connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        transaction.execute(
+            "INSERT OR IGNORE INTO history_baseline (id, state_json) VALUES (1, ?1)",
+            [serde_json::to_string(&MatchState::default())?],
+        )?;
+        Self::prune_history(&transaction)?;
+        transaction.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        transaction.commit()?;
 
         let saved_json = connection
             .query_row(
@@ -118,6 +133,28 @@ impl SqliteMatchStore {
         };
 
         Ok(Self { connection, state })
+    }
+
+    // A reset starts a new match. Keep the initial state of the oldest retained
+    // match as the undo baseline, without retaining any state from older matches.
+    fn prune_history(connection: &Connection) -> Result<(), MatchStoreError> {
+        let cutoff = connection
+            .query_row(
+                "SELECT id, state_json FROM command_history
+                 WHERE json_extract(command_json, '$.type') = 'reset_match'
+                 ORDER BY id DESC LIMIT 1 OFFSET ?1",
+                [MAX_RETAINED_MATCHES - 1],
+                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?)),
+            )
+            .optional()?;
+        if let Some((id, state_json)) = cutoff {
+            connection.execute(
+                "UPDATE history_baseline SET state_json = ?1 WHERE id = 1",
+                [state_json],
+            )?;
+            connection.execute("DELETE FROM command_history WHERE id <= ?1", [id])?;
+        }
+        Ok(())
     }
 
     #[must_use]
@@ -159,6 +196,9 @@ impl SqliteMatchStore {
             "INSERT INTO command_history (command_json, state_json) VALUES (?1, ?2)",
             params![command_json, state_json],
         )?;
+        if command == MatchCommand::ResetMatch {
+            Self::prune_history(&transaction)?;
+        }
         transaction.commit()?;
 
         self.state = next_state;
@@ -186,10 +226,15 @@ impl SqliteMatchStore {
                 |row| row.get::<_, String>(0),
             )
             .optional()?;
-        let mut previous_state = previous_json.map_or_else(
-            || Ok(MatchState::default()),
-            |json| serde_json::from_str(&json),
-        )?;
+        let previous_json = match previous_json {
+            Some(json) => json,
+            None => transaction.query_row(
+                "SELECT state_json FROM history_baseline WHERE id = 1",
+                [],
+                |row| row.get::<_, String>(0),
+            )?,
+        };
+        let mut previous_state: MatchState = serde_json::from_str(&previous_json)?;
         previous_state.revision = self.state.revision.saturating_add(1);
         let state_json = serde_json::to_string(&previous_state)?;
 
@@ -286,6 +331,104 @@ mod tests {
 
         assert!(!changed);
         assert_eq!(store.history_len().unwrap(), 0);
+    }
+
+    #[test]
+    fn retains_fifty_matches_instead_of_fifty_commands() {
+        let mut store = SqliteMatchStore::open_in_memory().unwrap();
+        for match_number in 1..=50 {
+            for _ in 0..3 {
+                store.apply(MatchCommand::EndTurn).unwrap();
+            }
+            if match_number < 50 {
+                store.apply(MatchCommand::ResetMatch).unwrap();
+            }
+        }
+        assert_eq!(store.history_len().unwrap(), 199);
+
+        store.apply(MatchCommand::ResetMatch).unwrap();
+        assert_eq!(store.history_len().unwrap(), 196);
+        let first_id: i64 = store
+            .connection
+            .query_row("SELECT MIN(id) FROM command_history", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(first_id, 5);
+        assert_eq!(store.state().turn.number, 1);
+
+        // No-op resets do not create additional matches or prune more history.
+        assert!(!store.apply(MatchCommand::ResetMatch).unwrap());
+        assert_eq!(store.history_len().unwrap(), 196);
+    }
+
+    #[test]
+    fn undo_stops_at_the_oldest_retained_match_after_reopening() {
+        let mut store = SqliteMatchStore::open_in_memory().unwrap();
+        for _ in 0..55 {
+            store.apply(MatchCommand::EndTurn).unwrap();
+            store.apply(MatchCommand::ResetMatch).unwrap();
+        }
+        store.apply(MatchCommand::EndTurn).unwrap();
+        let mut restored = SqliteMatchStore::from_connection(store.connection).unwrap();
+        assert_eq!(restored.state().turn.number, 2);
+        assert_eq!(restored.history_len().unwrap(), 99);
+
+        let revision = restored.state().revision;
+        for _ in 0..99 {
+            assert!(restored.apply(MatchCommand::Undo).unwrap());
+        }
+        assert_eq!(restored.state().turn.number, 1);
+        assert_eq!(restored.state().revision, revision + 99);
+        assert!(!restored.apply(MatchCommand::Undo).unwrap());
+
+        restored.apply(MatchCommand::EndTurn).unwrap();
+        restored.apply(MatchCommand::ResetMatch).unwrap();
+        assert!(restored.apply(MatchCommand::Undo).unwrap());
+        assert_eq!(restored.state().turn.number, 2);
+    }
+
+    #[test]
+    fn prunes_existing_version_one_history_on_open() {
+        let store = SqliteMatchStore::open_in_memory().unwrap();
+        store
+            .connection
+            .execute_batch(
+                "DROP TABLE history_baseline;
+                 DROP INDEX command_history_match_resets;
+                 PRAGMA user_version = 1;",
+            )
+            .unwrap();
+        let mut state = MatchState::default();
+        for _ in 0..55 {
+            for command in [MatchCommand::EndTurn, MatchCommand::ResetMatch] {
+                state.apply(command).unwrap();
+                store
+                    .connection
+                    .execute(
+                        "INSERT INTO command_history (command_json, state_json) VALUES (?1, ?2)",
+                        params![
+                            serde_json::to_string(&command).unwrap(),
+                            serde_json::to_string(&state).unwrap()
+                        ],
+                    )
+                    .unwrap();
+            }
+        }
+        store
+            .connection
+            .execute(
+                "UPDATE match_state SET state_json = ?1 WHERE id = 1",
+                [serde_json::to_string(&state).unwrap()],
+            )
+            .unwrap();
+
+        let restored = SqliteMatchStore::from_connection(store.connection).unwrap();
+        assert_eq!(restored.state(), &state);
+        assert_eq!(restored.history_len().unwrap(), 98);
+        let version: i64 = restored
+            .connection
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, SCHEMA_VERSION);
     }
 
     #[test]
