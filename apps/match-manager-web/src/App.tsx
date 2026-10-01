@@ -32,7 +32,7 @@ const actionToAPI: Record<TurnAction, ApiTurnAction> = {
 };
 
 export function App() {
-  const { match, canUndo, error, initialize, dispatch } = useMatchStore();
+  const { match, canUndo, pending, error, initialize, dispatch } = useMatchStore();
   useEffect(() => {
     void initialize();
   }, [initialize]);
@@ -65,7 +65,14 @@ export function App() {
             </button>
           </div>
         </header>
-        <p className="web-notice">試作版：再読み込みすると対戦状態がリセットされます。</p>
+        <p className="web-notice">
+          対戦状態はこの端末に保存されます。ブラウザのデータを削除すると消去されます。
+        </p>
+        {match && (
+          <p className="web-notice" role="status" aria-label="保存状況">
+            {pending > 0 ? '保存中…' : 'この端末に保存済み'}
+          </p>
+        )}
         {error && (
           <div role="alert" className="connection-error">
             {error}

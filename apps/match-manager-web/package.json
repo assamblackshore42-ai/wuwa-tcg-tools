@@ -16,6 +16,7 @@
     "test:preview": "playwright test --config playwright.preview.config.ts"
   },
   "dependencies": {
+    "dexie": "4.4.6",
     "lucide-react": "^1.48.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

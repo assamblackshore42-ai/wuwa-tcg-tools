@@ -9,6 +9,9 @@
 | `undo_state`           | 現在状態JSON、復元候補JSON          | revisionを更新した復元状態のJSON             |
 | `history_cutoff_index` | 新しい順のリセット履歴index配列JSON | 保持する最古対戦の境界index、またはundefined |
 
+追加のAPIは `validate_state`（状態JSONの検証・正規化）、`validate_command`（コマンドJSONの検証・正規化）、`retained_match_limit`（進行中を含む保持対戦数）です。
+IndexedDBアダプターはこれらを使って保存データを検証し、共通コアの保持方針を適用します。
+
 入力エラーはJavaScript側の例外として返します。
 状態を検証し、revisionをJavaScriptの安全な整数範囲に制限します。
 Undoの履歴読込と削除、候補状態の保存は呼出側のアダプターが担当します。

@@ -35,6 +35,26 @@ pub fn initial_state() -> Result<String, String> {
     serde_json::to_string(&MatchState::default()).map_err(|error| error.to_string())
 }
 
+/// Validates and canonicalizes a persisted state without applying a command.
+///
+/// # Errors
+/// Returns an error for malformed state or an unsafe revision.
+#[wasm_bindgen]
+pub fn validate_state(state_json: &str) -> Result<String, String> {
+    serde_json::to_string(&read_state(state_json)?).map_err(|error| error.to_string())
+}
+
+/// Validates and canonicalizes a command without changing match state.
+///
+/// # Errors
+/// Returns an error for malformed command JSON.
+#[wasm_bindgen]
+pub fn validate_command(command_json: &str) -> Result<String, String> {
+    let command: MatchCommand =
+        serde_json::from_str(command_json).map_err(|error| error.to_string())?;
+    serde_json::to_string(&command).map_err(|error| error.to_string())
+}
+
 /// Computes a candidate state without mutating the adapter's current state.
 ///
 /// # Errors
@@ -72,6 +92,13 @@ pub fn history_cutoff_index(reset_indices_json: &str) -> Result<Option<u32>, Str
     let indices: Vec<u32> =
         serde_json::from_str(reset_indices_json).map_err(|error| error.to_string())?;
     Ok(history_cutoff(indices))
+}
+
+/// Returns the shared retention limit, including the ongoing match.
+#[wasm_bindgen]
+#[must_use]
+pub fn retained_match_limit() -> usize {
+    match_core::MAX_RETAINED_MATCHES
 }
 
 #[cfg(test)]

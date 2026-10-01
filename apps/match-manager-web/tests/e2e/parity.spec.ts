@@ -13,8 +13,17 @@ test('actual browser Wasm matches Desktop SQLite after every command', async ({ 
     async (commands) => {
       const modulePath = '/src/matchSession.ts';
       const { createMatchSession } = await import(modulePath);
-      const session = await createMatchSession();
-      return commands.map((command) => session.dispatch(command));
+      let session = await createMatchSession('parity');
+      const results = [];
+      for (const [index, command] of commands.entries()) {
+        results.push(await session.dispatch(command));
+        if (index % 30 === 29) {
+          session.close();
+          session = await createMatchSession('parity');
+        }
+      }
+      session.close();
+      return results;
     },
     steps.map((step) => step.command),
   );
@@ -27,7 +36,7 @@ test('actual browser Wasm matches Desktop SQLite after every command', async ({ 
   }
 });
 
-test('Wasm rejects malformed commands and unsafe revisions without advancing memory state', async ({
+test('Wasm rejects malformed commands and unsafe revisions without advancing saved state', async ({
   page,
 }) => {
   await page.goto('/');
@@ -35,7 +44,7 @@ test('Wasm rejects malformed commands and unsafe revisions without advancing mem
     const apiPath = '/src/wasmApi.ts';
     const sessionPath = '/src/matchSession.ts';
     const engine = await (await import(apiPath)).loadWasm();
-    const session = await (await import(sessionPath)).createMatchSession();
+    const session = await (await import(sessionPath)).createMatchSession('validation');
     const initial = session.state;
     let rejected = 0;
     for (const command of [
@@ -43,7 +52,7 @@ test('Wasm rejects malformed commands and unsafe revisions without advancing mem
       { type: 'unknown' },
     ]) {
       try {
-        session.dispatch(command);
+        await session.dispatch(command);
       } catch {
         rejected++;
       }
@@ -59,7 +68,9 @@ test('Wasm rejects malformed commands and unsafe revisions without advancing mem
         rejected++;
       }
     }
-    return { rejected, unchanged: JSON.stringify(initial) === JSON.stringify(session.state) };
+    const unchanged = JSON.stringify(initial) === JSON.stringify((await session.snapshot()).state);
+    session.close();
+    return { rejected, unchanged };
   });
   expect(result).toEqual({ rejected: 5, unchanged: true });
 });

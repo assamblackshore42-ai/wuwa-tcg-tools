@@ -37,11 +37,41 @@ test('mobile-sized UI operates with Wasm and never connects to Desktop', async (
   await expect(life).toHaveText('20');
   await page.getByRole('button', { name: 'Undo', exact: true }).click();
   await expect(life).toHaveText('19');
+  await expect(page.getByRole('status', { name: '保存状況' })).toHaveText('この端末に保存済み');
   await page.reload();
-  await expect(life).toHaveText('20');
+  await expect(life).toHaveText('19');
+  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeEnabled();
   expect(wasmResponses.length).toBeGreaterThan(0);
   expect(desktopRequests).toEqual([]);
   expect(errors).toEqual([]);
+});
+
+test('a failed rapid tap remains visible while already queued later taps commit', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.getByLabel('PLAYER 1の現在ライフ')).toHaveText('20');
+  await page.evaluate(() => {
+    const put = IDBObjectStore.prototype.put;
+    let failed = false;
+    IDBObjectStore.prototype.put = function (...args: Parameters<typeof put>) {
+      if (this.name === 'records' && !failed) {
+        failed = true;
+        throw new DOMException('injected failure', 'QuotaExceededError');
+      }
+      return put.apply(this, args);
+    };
+    const button = document.querySelector<HTMLButtonElement>(
+      'button[aria-label="PLAYER 1のライフを1増やす"]',
+    )!;
+    for (let index = 0; index < 3; index++) button.click();
+  });
+  await expect(page.getByLabel('PLAYER 1の現在ライフ')).toHaveText('22');
+  await expect(page.getByRole('status', { name: '保存状況' })).toHaveText('この端末に保存済み');
+  await expect(page.getByRole('alert')).toContainText('空き容量が不足');
+  await page.getByRole('button', { name: 'PLAYER 1のライフを1増やす' }).click();
+  await expect(page.getByLabel('PLAYER 1の現在ライフ')).toHaveText('23');
+  await expect(page.getByRole('alert')).toHaveCount(0);
 });
 
 test('failed Wasm loading offers retry', async ({ page }) => {
@@ -51,4 +81,39 @@ test('failed Wasm loading offers retry', async ({ page }) => {
   await page.unroute('**/*.wasm*');
   await page.getByRole('button', { name: '再試行' }).click();
   await expect(page.getByLabel('PLAYER 1の現在ライフ')).toHaveText('20');
+});
+
+test('storage unavailable shows an error instead of falling back to unsaved memory', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'indexedDB', { value: undefined });
+  });
+  await page.goto('/');
+  await expect(page.getByRole('alert')).toContainText('起動できませんでした');
+  await expect(page.getByRole('button', { name: '再試行' })).toBeVisible();
+  await expect(page.getByLabel('PLAYER 1の現在ライフ')).toHaveCount(0);
+});
+
+test('quota failure keeps UI and saved state unchanged, then succeeds on retry', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.getByLabel('PLAYER 1の現在ライフ')).toHaveText('20');
+  await page.evaluate(() => {
+    const put = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function (...args: Parameters<typeof put>) {
+      if (this.name === 'records') throw new DOMException('injected failure', 'QuotaExceededError');
+      return put.apply(this, args);
+    };
+  });
+  await page.getByRole('button', { name: 'PLAYER 1のライフを1減らす' }).click();
+  await expect(page.getByRole('alert')).toContainText('空き容量が不足');
+  await expect(page.getByLabel('PLAYER 1の現在ライフ')).toHaveText('20');
+  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled();
+  await page.reload();
+  await expect(page.getByLabel('PLAYER 1の現在ライフ')).toHaveText('20');
+  await page.getByRole('button', { name: 'PLAYER 1のライフを1減らす' }).click();
+  await expect(page.getByLabel('PLAYER 1の現在ライフ')).toHaveText('19');
+  await expect(page.getByRole('alert')).toHaveCount(0);
 });

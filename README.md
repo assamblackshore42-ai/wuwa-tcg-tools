@@ -7,7 +7,7 @@
 
 スマートフォン向けPWAは、Desktopと共通の対戦コアを使い、端末内に状態を保存する構成で開発予定です。
 採用技術と配布先は[Match Manager PWAの技術スタックとホスティング](docs/decisions/0001-match-manager-pwa.md)を参照してください。
-工程2の[Web試作版](apps/match-manager-web/README.md)では、Wasmの共有コアで対戦を操作できます。永続保存とPWAのインストール・オフライン対応は後続工程です。
+[Web版](apps/match-manager-web/README.md)では、Wasmの共有コアで対戦を操作し、IndexedDBに状態と履歴を保存・復元できます。PWAのインストール・オフライン対応は後続工程です。
 
 ## 鳴潮：対決 リモート対戦アシスタント
 「鳴潮：対決」のリモート対戦をアシストするWindowsデスクトップアプリです。
