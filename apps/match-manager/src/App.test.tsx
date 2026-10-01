@@ -44,7 +44,7 @@ describe('App', () => {
     render(<App />);
 
     fireEvent.click(screen.getByRole('button', { name: 'PLAYER 1のライフを1減らす' }));
-    fireEvent.click(screen.getByRole('button', { name: 'PLAYER 2のライフを20に戻す' }));
+    fireEvent.click(screen.getByRole('button', { name: 'PLAYER 2のライフを1増やす' }));
 
     expect(sendCommand).toHaveBeenNthCalledWith(1, {
       type: 'adjust_life',
@@ -52,8 +52,9 @@ describe('App', () => {
       amount: -1,
     });
     expect(sendCommand).toHaveBeenNthCalledWith(2, {
-      type: 'reset_life',
+      type: 'adjust_life',
       player: 'player_two',
+      amount: 1,
     });
   });
 

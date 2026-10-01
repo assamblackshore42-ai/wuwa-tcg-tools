@@ -108,10 +108,18 @@ pnpm match-manager:check
 pnpm match-manager:e2e
 pnpm match-manager:rust:format
 pnpm match-manager:rust:check
+pnpm match-manager:rust:test
+pnpm match-core:format
+pnpm match-core:check
+pnpm match-core:test
 pnpm match-manager:tauri:check
 ```
 
 `match-manager:tauri:check`はデバッグ実行ファイルまでビルドしますが、インストーラーは生成しません。
+
+対戦ルール、Undoのrevision更新、直近50戦の保持方針は[共有Rustコア](../../crates/match-core/README.md)に置いています。
+ライフ・戦況・ターンのReactコンポーネントとテーマは[共有UI](../../packages/match-ui/README.md)を利用します。OBSの読み取り専用表示、接続処理、SQLite保存はDesktopで扱います。
+SQLiteの読込・書込とHTTP/WebSocketはDesktop側に残しています。
 
 ## 配布ビルド
 

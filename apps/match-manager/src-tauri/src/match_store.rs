@@ -2,12 +2,12 @@ use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 use std::path::Path;
 
+use match_core::{MAX_RETAINED_MATCHES, history_cutoff, restore_undo};
 use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::match_state::{MatchCommand, MatchState, MatchStateError};
 
 const SCHEMA_VERSION: i64 = 2;
-const MAX_RETAINED_MATCHES: i64 = 50;
 
 pub struct SqliteMatchStore {
     connection: Connection,
@@ -108,11 +108,7 @@ impl SqliteMatchStore {
             "INSERT OR IGNORE INTO history_baseline (id, state_json) VALUES (1, ?1)",
             [serde_json::to_string(&MatchState::default())?],
         )?;
-        Self::prune_history(&transaction)?;
-        transaction.pragma_update(None, "user_version", SCHEMA_VERSION)?;
-        transaction.commit()?;
-
-        let saved_json = connection
+        let saved_json = transaction
             .query_row(
                 "SELECT state_json FROM match_state WHERE id = 1",
                 [],
@@ -120,34 +116,44 @@ impl SqliteMatchStore {
             )
             .optional()?;
 
-        let state = if let Some(json) = saved_json {
+        let state: MatchState = if let Some(json) = saved_json {
             serde_json::from_str(&json)?
         } else {
             let initial = MatchState::default();
             let json = serde_json::to_string(&initial)?;
-            connection.execute(
+            transaction.execute(
                 "INSERT INTO match_state (id, state_json) VALUES (1, ?1)",
                 [json],
             )?;
             initial
         };
 
+        state.validate()?;
+        Self::prune_history(&transaction)?;
+        transaction.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        transaction.commit()?;
         Ok(Self { connection, state })
     }
 
     // A reset starts a new match. Keep the initial state of the oldest retained
     // match as the undo baseline, without retaining any state from older matches.
     fn prune_history(connection: &Connection) -> Result<(), MatchStoreError> {
-        let cutoff = connection
-            .query_row(
-                "SELECT id, state_json FROM command_history
+        let mut statement = connection.prepare(
+            "SELECT id FROM command_history
                  WHERE json_extract(command_json, '$.type') = 'reset_match'
-                 ORDER BY id DESC LIMIT 1 OFFSET ?1",
-                [MAX_RETAINED_MATCHES - 1],
-                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?)),
-            )
-            .optional()?;
-        if let Some((id, state_json)) = cutoff {
+                 ORDER BY id DESC",
+        )?;
+        let resets = statement
+            .query_map([], |row| row.get::<_, i64>(0))?
+            .take(MAX_RETAINED_MATCHES)
+            .collect::<Result<Vec<_>, _>>()?;
+        if let Some(id) = history_cutoff(resets) {
+            let state_json: String = connection.query_row(
+                "SELECT state_json FROM command_history WHERE id = ?1",
+                [id],
+                |row| row.get(0),
+            )?;
+            serde_json::from_str::<MatchState>(&state_json)?.validate()?;
             connection.execute(
                 "UPDATE history_baseline SET state_json = ?1 WHERE id = 1",
                 [state_json],
@@ -234,8 +240,7 @@ impl SqliteMatchStore {
                 |row| row.get::<_, String>(0),
             )?,
         };
-        let mut previous_state: MatchState = serde_json::from_str(&previous_json)?;
-        previous_state.revision = self.state.revision.saturating_add(1);
+        let previous_state = restore_undo(&self.state, serde_json::from_str(&previous_json)?)?;
         let state_json = serde_json::to_string(&previous_state)?;
 
         transaction.execute("DELETE FROM command_history WHERE id = ?1", [latest_id])?;
@@ -273,6 +278,114 @@ mod tests {
     use crate::match_state::{BattleStatus, INITIAL_LIFE, PlayerId, TurnAction};
 
     use super::*;
+
+    #[test]
+    fn restores_pre_extraction_json_and_undo_history_without_schema_changes() {
+        // Literal snapshots from the Desktop JSON contract, independent of the
+        // new crate's serializer. Both the saved state and history must restore.
+        let baseline = r#"{"revision":0,"players":[{"id":"player_one","name":"PLAYER 1","life":20},{"id":"player_two","name":"PLAYER 2","life":20}],"battleStatus":"even","turn":{"number":1,"activePlayer":"player_one","usedActions":[]}}"#;
+        let first = r#"{"revision":1,"players":[{"id":"player_one","name":"PLAYER 1","life":20},{"id":"player_two","name":"PLAYER 2","life":20}],"battleStatus":"even","turn":{"number":2,"activePlayer":"player_two","usedActions":[]}}"#;
+        let latest = r#"{"revision":2,"players":[{"id":"player_one","name":"PLAYER 1","life":20},{"id":"player_two","name":"PLAYER 2","life":17}],"battleStatus":"even","turn":{"number":2,"activePlayer":"player_two","usedActions":[]}}"#;
+        let connection = Connection::open_in_memory().unwrap();
+        connection.execute_batch(
+            "CREATE TABLE match_state (id INTEGER PRIMARY KEY CHECK (id = 1), state_json TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT 'legacy');
+             CREATE TABLE command_history (id INTEGER PRIMARY KEY AUTOINCREMENT, command_json TEXT NOT NULL, state_json TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT 'legacy');
+             CREATE TABLE history_baseline (id INTEGER PRIMARY KEY CHECK (id = 1), state_json TEXT NOT NULL);
+             PRAGMA user_version = 2;",
+        ).unwrap();
+        connection
+            .execute(
+                "INSERT INTO match_state (id, state_json) VALUES (1, ?1)",
+                [latest],
+            )
+            .unwrap();
+        connection
+            .execute(
+                "INSERT INTO history_baseline (id, state_json) VALUES (1, ?1)",
+                [baseline],
+            )
+            .unwrap();
+        for (command, state) in [
+            (r#"{"type":"end_turn"}"#, first),
+            (
+                r#"{"type":"adjust_life","player":"player_two","amount":-3}"#,
+                latest,
+            ),
+        ] {
+            connection
+                .execute(
+                    "INSERT INTO command_history (command_json, state_json) VALUES (?1, ?2)",
+                    params![command, state],
+                )
+                .unwrap();
+        }
+
+        let mut restored = SqliteMatchStore::from_connection(connection).unwrap();
+        assert_eq!(serde_json::to_string(restored.state()).unwrap(), latest);
+        assert_eq!(restored.history_len().unwrap(), 2);
+        assert!(restored.apply(MatchCommand::Undo).unwrap());
+        assert_eq!(restored.state().players[1].life, 20);
+        assert_eq!(restored.state().turn.number, 2);
+        assert_eq!(restored.state().revision, 3);
+        assert!(restored.apply(MatchCommand::Undo).unwrap());
+        assert_eq!(restored.state().turn.number, 1);
+        assert_eq!(restored.state().revision, 4);
+        assert!(!restored.apply(MatchCommand::Undo).unwrap());
+        let version: i64 = restored
+            .connection
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 2);
+    }
+
+    #[test]
+    fn failed_history_write_rolls_back_state_and_can_be_retried() {
+        let mut store = SqliteMatchStore::open_in_memory().unwrap();
+        store
+            .connection
+            .execute_batch(
+                "CREATE TRIGGER fail_history BEFORE INSERT ON command_history
+             BEGIN SELECT RAISE(ABORT, 'injected write failure'); END;",
+            )
+            .unwrap();
+        assert!(store.apply(MatchCommand::EndTurn).is_err());
+        assert_eq!(store.state(), &MatchState::default());
+        assert_eq!(store.history_len().unwrap(), 0);
+        let mut restored = SqliteMatchStore::from_connection(store.connection).unwrap();
+        assert_eq!(restored.state(), &MatchState::default());
+        restored
+            .connection
+            .execute_batch("DROP TRIGGER fail_history;")
+            .unwrap();
+        assert!(restored.apply(MatchCommand::EndTurn).unwrap());
+        assert_eq!(restored.state().revision, 1);
+    }
+
+    #[test]
+    fn failed_undo_rolls_back_history_deletion_and_state() {
+        let mut store = SqliteMatchStore::open_in_memory().unwrap();
+        store.apply(MatchCommand::EndTurn).unwrap();
+        let expected = store.state().clone();
+        store
+            .connection
+            .execute_batch(
+                "CREATE TRIGGER fail_state BEFORE UPDATE ON match_state
+             BEGIN SELECT RAISE(ABORT, 'injected write failure'); END;",
+            )
+            .unwrap();
+        assert!(store.apply(MatchCommand::Undo).is_err());
+        assert_eq!(store.state(), &expected);
+        assert_eq!(store.history_len().unwrap(), 1);
+        let mut restored = SqliteMatchStore::from_connection(store.connection).unwrap();
+        assert_eq!(restored.state(), &expected);
+        restored
+            .connection
+            .execute_batch("DROP TRIGGER fail_state;")
+            .unwrap();
+        assert!(restored.apply(MatchCommand::Undo).unwrap());
+        assert_eq!(restored.state().turn.number, 1);
+        assert_eq!(restored.state().revision, 2);
+    }
 
     #[test]
     fn initializes_a_new_store_with_the_default_match() {

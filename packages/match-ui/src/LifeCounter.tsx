@@ -1,16 +1,11 @@
-import { Minus, Plus, RotateCcw } from 'lucide-react';
+import { Minus, Plus } from 'lucide-react';
 
 import './LifeCounter.css';
-
-export const INITIAL_LIFE = 20;
-export const MIN_LIFE = 0;
-export const MAX_LIFE = 999;
 
 type LifeCounterProps = {
   label: string;
   life: number;
   onAdjust: (amount: -1 | 1) => void;
-  onReset: () => void;
   tone: 'cyan' | 'magenta';
   readOnly?: boolean;
 };
@@ -19,7 +14,6 @@ export function LifeCounter({
   label,
   life,
   onAdjust,
-  onReset,
   tone,
   readOnly = false,
 }: LifeCounterProps) {
@@ -33,17 +27,6 @@ export function LifeCounter({
           <p className="section-kicker">LIFE POINT</p>
           <h2>{label}</h2>
         </div>
-        {!readOnly && (
-          <button
-            className="icon-button"
-            type="button"
-            onClick={onReset}
-            aria-label={`${label}のライフを${INITIAL_LIFE}に戻す`}
-            title="初期値に戻す"
-          >
-            <RotateCcw aria-hidden="true" size={18} />
-          </button>
-        )}
       </header>
 
       <div className="life-counter__controls">

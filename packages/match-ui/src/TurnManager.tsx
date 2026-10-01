@@ -21,6 +21,7 @@ type TurnManagerProps = {
   onResetActions: () => void;
   onNextTurn: () => void;
   readOnly?: boolean;
+  compact?: boolean;
 };
 
 const TURN_ACTIONS: Array<{
@@ -42,6 +43,7 @@ export function TurnManager({
   onResetActions,
   onNextTurn,
   readOnly = false,
+  compact = false,
 }: TurnManagerProps) {
   return (
     <section
@@ -75,12 +77,6 @@ export function TurnManager({
           <span>現在の手番</span>
           <strong>PLAYER {activePlayer}</strong>
         </div>
-        {!readOnly && (
-          <button className="turn-manager__next" type="button" onClick={onNextTurn}>
-            ターン終了
-            <ChevronRight aria-hidden="true" />
-          </button>
-        )}
       </div>
 
       <div className="turn-manager__actions" aria-label="ターン内行動">
@@ -94,7 +90,7 @@ export function TurnManager({
               </span>
               <span>
                 <strong>{label}</strong>
-                <small>{isUsed ? description : '未使用'}</small>
+                <small>{isUsed ? (compact ? '使用済み' : description) : '未使用'}</small>
               </span>
             </>
           );
@@ -117,6 +113,12 @@ export function TurnManager({
           );
         })}
       </div>
+      {!readOnly && (
+        <button className="turn-manager__next" type="button" onClick={onNextTurn}>
+          ターン終了
+          <ChevronRight aria-hidden="true" />
+        </button>
+      )}
     </section>
   );
 }

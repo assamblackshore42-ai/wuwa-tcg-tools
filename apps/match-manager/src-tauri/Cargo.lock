@@ -2097,6 +2097,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "match-core"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "matchers"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5098,6 +5105,7 @@ name = "wuwa-tcg-match-manager"
 version = "0.1.4"
 dependencies = [
  "axum",
+ "match-core",
  "rusqlite",
  "serde",
  "serde_json",
