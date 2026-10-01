@@ -8,6 +8,7 @@ apps/match-manager/src-tauri/target/
 crates/target/
 crates/match-core-wasm/pkg/
 .tools/
+.wrangler/
 apps/match-manager-web/dist/
 apps/match-manager-web/tests/generated/
 apps/match-manager-web/playwright-report/
