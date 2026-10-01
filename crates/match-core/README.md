@@ -20,6 +20,6 @@ pnpm match-manager:rust:test
 
 共有crateは `crates/Cargo.toml` のworkspaceで管理します。
 Desktopは既存の独立したCargoプロジェクトのままpath依存で利用し、既存のtargetパス、Cargo.lock、Tauriのrelease profileを維持します。
-Wasmラッパーは後続工程でこのworkspaceに追加します。
+[Wasmラッパー](../match-core-wasm/README.md)もこのworkspaceで管理し、Webから同じコアを利用します。
 
 自作部分は[MITライセンス](LICENSE)です。

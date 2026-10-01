@@ -1,5 +1,5 @@
 [workspace]
-members = ["match-core"]
+members = ["match-core", "match-core-wasm"]
 resolver = "3"
 
 [workspace.lints.rust]

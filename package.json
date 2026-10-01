@@ -7,6 +7,13 @@
     "pnpm": ">=11 <12"
   },
   "scripts": {
+    "match-core:wasm": "node scripts/build-match-wasm.mjs",
+    "match-manager-web:dev": "pnpm match-core:wasm && pnpm --filter @wuwatcg/match-manager-web dev",
+    "match-manager-web:build": "pnpm match-core:wasm && pnpm --filter @wuwatcg/match-manager-web build",
+    "match-manager-web:check": "pnpm match-core:wasm && pnpm --filter @wuwatcg/match-manager-web check",
+    "match-manager-web:fixture": "cargo run --manifest-path apps/match-manager/src-tauri/Cargo.toml --example match_parity_fixture --locked -- apps/match-manager-web/tests/generated/desktop-parity.json",
+    "match-manager-web:e2e": "pnpm match-core:wasm && pnpm match-manager-web:fixture && pnpm --filter @wuwatcg/match-manager-web test:e2e",
+    "match-manager-web:preview:test": "pnpm match-manager-web:build && pnpm --filter @wuwatcg/match-manager-web test:preview",
     "match-core:test": "cargo test --manifest-path crates/Cargo.toml --locked",
     "match-core:check": "cargo clippy --manifest-path crates/Cargo.toml --all-targets --all-features --locked -- -D warnings",
     "match-core:format": "cargo fmt --manifest-path crates/Cargo.toml --all --check",

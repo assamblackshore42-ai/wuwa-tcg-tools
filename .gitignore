@@ -6,6 +6,12 @@ apps/match-manager/dist/
 apps/match-manager/src-tauri/gen/
 apps/match-manager/src-tauri/target/
 crates/target/
+crates/match-core-wasm/pkg/
+.tools/
+apps/match-manager-web/dist/
+apps/match-manager-web/tests/generated/
+apps/match-manager-web/playwright-report/
+apps/match-manager-web/test-results/
 apps/match-manager/coverage/
 apps/match-manager/playwright-report/
 apps/match-manager/test-results/

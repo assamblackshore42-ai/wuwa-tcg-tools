@@ -5,6 +5,8 @@ on:
     paths:
       - '.github/workflows/match-manager-ci.yml'
       - 'apps/match-manager/**'
+      - 'apps/match-manager-web/**'
+      - 'scripts/build-match-wasm.mjs'
       - 'crates/**'
       - '.node-version'
       - 'package.json'
@@ -16,6 +18,8 @@ on:
     paths:
       - '.github/workflows/match-manager-ci.yml'
       - 'apps/match-manager/**'
+      - 'apps/match-manager-web/**'
+      - 'scripts/build-match-wasm.mjs'
       - 'crates/**'
       - '.node-version'
       - 'package.json'
@@ -46,6 +50,11 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Prepare Wasm tools
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo install wasm-pack --version 0.15.0 --locked --root .tools/wasm-pack
+
       - name: Check frontend
         run: pnpm match-manager:check
 
@@ -69,6 +78,12 @@ jobs:
 
       - name: Test Desktop persistence and API
         run: pnpm match-manager:rust:test
+
+      - name: Check Web and Desktop parity
+        run: |
+          pnpm match-manager-web:check
+          pnpm match-manager-web:e2e
+          pnpm match-manager-web:preview:test
 
       - name: Build Tauri application
         run: pnpm match-manager:tauri:check

@@ -1,7 +1,7 @@
 # Match Manager PWAの技術スタックとホスティング
 
 - 決定日: 2026-10-01
-- 状態: 採用（工程1の共通Rustコア切り出しを実装、Web・公開は未着手）
+- 状態: 採用（工程1・2を実装、永続保存・PWA化・公開は未着手）
 - 開発ブランチ: `codex/match-manager-pwa-architecture`
 
 ## 目的と初期スコープ
@@ -167,7 +167,14 @@ PlaywrightのChromium/WebKitに加え、Android ChromeとiPhone Safari・ホー�
 ブラウザの模擬モバイル表示だけをもって、iOSのPWA動作を確認済みとはしない。
 工程1では `crates/match-core/` を実装し、Desktopからpath依存で利用する。
 共有crateは `crates/Cargo.toml` のworkspaceで管理し、DesktopのCargoプロジェクト、lockfile、targetパス、release profileは維持する。
-工程2以降のWasm・Web実装とブラウザ互換性確認は未着手。
+工程2では `crates/match-core-wasm/` と `apps/match-manager-web/` を実装する。
+WasmラッパーはJSON契約とrevisionの安全な整数範囲を検証し、Webのメモリアダプターが履歴を管理する。
+DesktopのSQLiteアダプターで生成した239コマンドの操作列と、ブラウザ内で動作するWasmの各状態を比較する。
+既存UIの参照は工程4の共有UIパッケージ化までの暫定構成。工程3以降とAndroid/iPhoneの実機検証は未着手。
+
+工程2の検証結果: Rustの32テスト、Clippy、フォーマット・Webの型検査とLintを通過。
+Edgeで239操作のDesktop/Web状態一致とWebの4テストを確認し、静的配布ビルドでも2テストを通過した。
+Wasm読込失敗後の再試行、PC APIへ接続しない動作、再読み込み時の試作版の初期化を含む。
 
 ## 参照資料
 

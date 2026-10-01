@@ -4,5 +4,8 @@
 **/src-tauri/gen
 **/src-tauri/target
 crates/target
+crates/match-core-wasm/pkg
+.tools
+apps/match-manager-web/tests/generated
 **/test-results
 pnpm-lock.yaml
