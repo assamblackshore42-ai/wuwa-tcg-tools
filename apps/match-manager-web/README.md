@@ -91,8 +91,23 @@ pnpm match-manager-web:build
 pnpm --filter @wuwatcg/match-manager-web preview
 ```
 
-出力は `apps/match-manager-web/dist/`。公開は後続工程です。
+出力は `apps/match-manager-web/dist/`。Cloudflareへの公開手順は次の節を参照してください。
 今回の検証はEdge上のスマホ相当の画面サイズで行うものであり、Android/iPhoneの実機確認を意味しません。
+
+## GitHub Actionsから公開する
+
+`.github/workflows/match-manager-web-release.yml` の **Match manager Web release** を手動実行し、Cloudflare Workers Static Assetsへ公開します。
+公開先はリポジトリ直下の `wrangler.jsonc` にある `wuwa-tcg-match-manager-web` です。
+
+
+### リリースする
+Github Actionの手動リリースです。
+
+1. GitHubリポジトリの **Actions** を開きます。
+2. **Match manager Web release** を選択します。
+3. **Run workflow** を開き、公開するブランチを選びます。通常はデフォルトブランチを使います。
+4. **Run workflow** を押します。選択したブランチのコードが検証・ビルドされ、成功すると本番URLの内容が更新されます。
+5. `release` が成功したら、実行のSummaryまたはDeployステップのログに表示される公開URLを確認します
 
 ## 構成
 
