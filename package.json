@@ -7,6 +7,10 @@
     "pnpm": ">=11 <12"
   },
   "scripts": {
+    "match-core:test": "cargo test --manifest-path crates/Cargo.toml --locked",
+    "match-core:check": "cargo clippy --manifest-path crates/Cargo.toml --all-targets --all-features --locked -- -D warnings",
+    "match-core:format": "cargo fmt --manifest-path crates/Cargo.toml --all --check",
+    "match-manager:rust:test": "cargo test --manifest-path apps/match-manager/src-tauri/Cargo.toml --lib --locked",
     "match-manager:build": "pnpm --filter @wuwatcg/match-manager build",
     "match-manager:check": "pnpm --filter @wuwatcg/match-manager check",
     "match-manager:dev": "pnpm --filter @wuwatcg/match-manager dev",

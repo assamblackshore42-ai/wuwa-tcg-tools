@@ -3,5 +3,6 @@
 **/playwright-report
 **/src-tauri/gen
 **/src-tauri/target
+crates/target
 **/test-results
 pnpm-lock.yaml

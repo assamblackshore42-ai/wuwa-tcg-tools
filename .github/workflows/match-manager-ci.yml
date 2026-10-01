@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/match-manager-ci.yml'
       - 'apps/match-manager/**'
+      - 'crates/**'
       - '.node-version'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -15,6 +16,7 @@ on:
     paths:
       - '.github/workflows/match-manager-ci.yml'
       - 'apps/match-manager/**'
+      - 'crates/**'
       - '.node-version'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -53,11 +55,20 @@ jobs:
       - name: Check Rust formatting
         run: pnpm match-manager:rust:format
 
+      - name: Check shared core
+        run: |
+          pnpm match-core:format
+          pnpm match-core:check
+          pnpm match-core:test
+
       - name: Build frontend
         run: pnpm match-manager:build
 
       - name: Lint Rust
         run: pnpm match-manager:rust:check
+
+      - name: Test Desktop persistence and API
+        run: pnpm match-manager:rust:test
 
       - name: Build Tauri application
         run: pnpm match-manager:tauri:check

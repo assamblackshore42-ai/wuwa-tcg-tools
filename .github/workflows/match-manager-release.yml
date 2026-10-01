@@ -51,6 +51,13 @@ jobs:
       - name: Check frontend
         run: pnpm match-manager:check
 
+      - name: Check shared core and Desktop persistence
+        run: |
+          pnpm match-core:format
+          pnpm match-core:check
+          pnpm match-core:test
+          pnpm match-manager:rust:test
+
       - name: Build NSIS installer
         run: pnpm match-manager:tauri:build
 
