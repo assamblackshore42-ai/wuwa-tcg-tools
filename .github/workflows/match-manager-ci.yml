@@ -6,6 +6,7 @@ on:
       - '.github/workflows/match-manager-ci.yml'
       - 'apps/match-manager/**'
       - 'apps/match-manager-web/**'
+      - 'packages/match-ui/**'
       - 'scripts/build-match-wasm.mjs'
       - 'crates/**'
       - '.node-version'
@@ -19,6 +20,7 @@ on:
       - '.github/workflows/match-manager-ci.yml'
       - 'apps/match-manager/**'
       - 'apps/match-manager-web/**'
+      - 'packages/match-ui/**'
       - 'scripts/build-match-wasm.mjs'
       - 'crates/**'
       - '.node-version'
@@ -56,7 +58,9 @@ jobs:
           cargo install wasm-pack --version 0.15.0 --locked --root .tools/wasm-pack
 
       - name: Check frontend
-        run: pnpm match-manager:check
+        run: |
+          pnpm match-ui:check
+          pnpm match-manager:check
 
       - name: Run browser smoke test
         run: pnpm match-manager:e2e
