@@ -1,7 +1,7 @@
 # Match Manager PWAの技術スタックとホスティング
 
 - 決定日: 2026-10-01
-- 状態: 採用（工程1〜3を実装、共有UIパッケージ化・PWA化・公開は未着手）
+- 状態: 採用（工程1〜4を実装、PWA化・公開は未着手）
 - 開発ブランチ: `codex/match-manager-pwa-architecture`
 
 ## 目的と初期スコープ
@@ -170,7 +170,7 @@ PlaywrightのChromium/WebKitに加え、Android ChromeとiPhone Safari・ホー�
 工程2では `crates/match-core-wasm/` と `apps/match-manager-web/` を実装する。
 WasmラッパーはJSON契約とrevisionの安全な整数範囲を検証し、Webのメモリアダプターが履歴を管理する。
 DesktopのSQLiteアダプターで生成した239コマンドの操作列と、ブラウザ内で動作するWasmの各状態を比較する。
-既存UIの参照は工程4の共有UIパッケージ化までの暫定構成。工程4以降とAndroid/iPhoneの実機検証は未着手。
+工程2時点のDesktop UI直接参照は工程4で共有UIパッケージへ置き換えた。工程5以降とAndroid/iPhoneの実機検証は未着手。
 
 工程2の検証結果: Rustの32テスト、Clippy、フォーマット・Webの型検査とLintを通過。
 Edgeで239操作のDesktop/Web状態一致とWebの4テストを確認し、静的配布ビルドでも2テストを通過した。
@@ -189,6 +189,17 @@ Dexie liveQueryで各画面へ更新を通知する。端末間のクラウド�
 239操作のDesktop/IndexedDB状態一致、途中のDB再開、100回の連続操作、複数タブの同時操作を確認した。
 容量不足、Undo・保持境界の削除失敗のロールバック、破損・新しいDB形式の保護、連続操作中の保存エラー表示も含む。
 Webの型検査・Lint・フォーマット、Rustの14テストとClippyも通過した。
+
+工程4では `packages/match-ui/` にライフ・戦況・ターンのReactコンポーネント、共通テーマ・レイアウト、JSON契約のTypeScript型を移した。
+DesktopとWebはworkspace依存で利用し、保存処理、通信、OBSは各アプリに残す。共有UIの自作部分はMITライセンスとする。
+Webでは縦画面でも両者のライフを横並びにし、ボタンのタッチ領域を44px以上に確保する。
+`viewport-fit=cover` とセーフエリアの余白、縦スクロール、動きを減らす設定に対応する。
+幅320・390・430pxのタッチ対応モバイル表示で、横へのはみ出し、連続タップ、Undo、保存・復元を検証する。
+セーフエリアはCSS変数へ余白を注入してレイアウトを検証する。実機でのノッチ・ホームインジケーターの確認は未実施。
+
+工程4の検証結果: 共有UI・Desktop・Webの型検査、Lint、フォーマットが通過した。
+Desktopの7単体テスト・2ブラウザテスト、Webの21ブラウザテスト・静的配布ビルドの11テストが通過した。
+DesktopとWebの配布ビルド、OBSオーバーレイの背景透過・読み取り専用表示も確認した。
 
 ## 参照資料
 

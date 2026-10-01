@@ -8,6 +8,7 @@
 スマートフォン向けPWAは、Desktopと共通の対戦コアを使い、端末内に状態を保存する構成で開発予定です。
 採用技術と配布先は[Match Manager PWAの技術スタックとホスティング](docs/decisions/0001-match-manager-pwa.md)を参照してください。
 [Web版](apps/match-manager-web/README.md)では、Wasmの共有コアで対戦を操作し、IndexedDBに状態と履歴を保存・復元できます。PWAのインストール・オフライン対応は後続工程です。
+DesktopとWebは[共有React UI](packages/match-ui/README.md)を利用します。Webはスマホの縦画面・タッチ操作・セーフエリアに対応しています。
 
 ## 鳴潮：対決 リモート対戦アシスタント
 「鳴潮：対決」のリモート対戦をアシストするWindowsデスクトップアプリです。
@@ -26,6 +27,7 @@
 match-managerの `apps/match-manager/` 内の自作部分は、[MITライセンス](apps/match-manager/LICENSE)で公開しています。
 共有Rustコアの `crates/match-core/` も[MITライセンス](crates/match-core/LICENSE)で公開しています。
 Wasmラッパーの `crates/match-core-wasm/` とWeb試作版の `apps/match-manager-web/` も、それぞれのディレクトリに置いたMITライセンスで公開しています。
+共有UIの `packages/match-ui/` も[MITライセンス](packages/match-ui/LICENSE)で公開しています。
 このライセンスは画像認識アプリの `src/`、`tests/`、リポジトリ直下のファイル、および `assets/cards/` には適用されません。
 
 画像認識アプリ（`src/`、`tests/` など）には現時点でライセンスを付与していません。今後ライセンスを定める場合があります。

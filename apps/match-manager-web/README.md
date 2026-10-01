@@ -1,10 +1,25 @@
-# Match Manager Web（工程3まで実装）
+# Match Manager Web（工程4まで実装）
 
 Rustの共有対戦コアを実際のWebAssemblyとして読み込み、ライフ・戦況・ターン、Undo、対戦リセットを操作するWeb画面です。
 PC側のAPI、WebSocket、OBSには接続しません。
 工程3ではIndexedDB（Dexie）に状態と操作履歴を保存し、再読み込み後も対戦を継続できます。
 保存先はブラウザ・端末・オリジンごとに独立します。同じブラウザの同じオリジンを開いた複数タブでは状態を共有します。
-共有UIパッケージ化は工程4、インストール・オフライン対応は工程5で追加します。
+工程4でDesktopとWebの表示を `packages/match-ui` に共有化しました。インストール・オフライン対応は工程5で追加します。
+
+## スマートフォンの操作画面
+
+縦画面でも両者のライフを横並びで表示し、増減ボタンを数値の下に配置します。
+すべてのボタンは44px以上のタッチ領域を持ち、連続タップを保存キューで処理します。
+保存状況はタイトル横のアイコン、保存についての説明はInfoアイコンのツールチップにまとめています。
+ツールチップはタップ・ホバー・キーボードで開き、外側のタップやEscapeで閉じます。
+ターン内行動は横3列に並べ、ターン終了はセクションの最下部に配置します。
+幅320px・高さ700pxと幅390/430px・高さ844pxでは主要操作が一画面に収まることを検証します。
+画面がさらに小さい場合や文字拡大・大きいセーフエリアがある場合は縦スクロールで操作できます。
+`viewport-fit=cover` と `env(safe-area-inset-*)` でノッチ・画面端・ホームインジケーター分の余白を確保します。
+ブラウザの拡大操作を禁止せず、動きを減らす設定にも対応します。
+
+Edgeのタッチ対応モバイル表示で幅320・390・430pxを検証します。
+セーフエリアの検証ではCSS変数に余白を注入してレイアウトを確認しており、実際のiOSの余白検出は実機確認が必要です。
 
 ## 保存と履歴
 
@@ -55,6 +70,7 @@ pnpm --filter @wuwatcg/match-manager-web dev --host 0.0.0.0
 pnpm match-core:format
 pnpm match-core:check
 pnpm match-core:test
+pnpm match-ui:check
 pnpm match-manager-web:check
 pnpm match-manager-web:e2e
 pnpm match-manager-web:preview:test
@@ -84,10 +100,11 @@ pnpm --filter @wuwatcg/match-manager-web preview
 - `src/matchDatabase.ts`: IndexedDBのスキーマとデータ形式。
 - `src/matchSession.ts`: IndexedDB保存アダプター。計算をWasmへ委譲し、保存トランザクション・操作キュー・更新通知を扱う。
 - `src/matchStore.ts`: Zustandで画面状態、起動、エラーを管理する。
-- `src/App.tsx`: 既存のDesktopの表示コンポーネントを再利用する。保存先やPC接続処理は取り込まない。
+- `src/App.tsx`: 共有UIを利用し、Webの保存状況・エラー・操作を扱う。
+- `packages/match-ui`: DesktopとWebで共有するライフ・戦況・ターンのコンポーネントとテーマ、JSON契約のTypeScript型。
 - `tests/e2e`: 実際のブラウザでWasmとUIを検証する。
 
-状態型は現時点でDesktopのTypeScript契約を型として参照し、Rustとの一致は比較テストで確認します。
+状態型は共有パッケージの純粋な型を参照し、Rustとの一致は比較テストで確認します。
 revisionがJavaScriptの安全な整数範囲を超える状態と、その範囲を超える更新はラッパーが拒否します。
 
 自作部分は[MITライセンス](LICENSE)です。第三者ライセンスは[表記](../../THIRD_PARTY_NOTICES.md)を参照してください。
