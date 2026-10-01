@@ -1,5 +1,55 @@
-.web-notice {
-  color: #aebbd0;
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.web-heading,
+.web-heading__indicators {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.web-heading {
+  justify-content: space-between;
+}
+
+.web-save-status {
+  display: inline-flex;
+  color: var(--color-used);
+}
+
+.web-save-status.is-saving {
+  color: var(--color-warning);
+}
+
+.web-save-status.is-error {
+  color: #ff9cac;
+}
+
+.web-info {
+  position: relative;
+}
+
+.web-info__tooltip {
+  position: absolute;
+  z-index: 2;
+  top: calc(100% + 6px);
+  right: 0;
+  width: min(280px, calc(100vw - 48px));
+  padding: 12px;
+  border: 1px solid #39465a;
+  border-radius: 10px;
+  color: #c7d1df;
+  background: #172232;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 40%);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -10,9 +60,10 @@
 .web-shell .header-action-button {
   min-height: 44px;
 }
-@media (max-width: 600px) {
+@media (max-width: 620px) {
   .web-shell {
-    padding: 18px 12px;
+    padding: calc(12px + var(--safe-area-top)) calc(12px + var(--safe-area-right))
+      calc(12px + var(--safe-area-bottom)) calc(12px + var(--safe-area-left));
   }
   .web-shell .app-header {
     align-items: flex-start;
@@ -20,7 +71,200 @@
   }
   .web-shell .app-header__actions {
     flex-wrap: wrap;
+    gap: 8px;
   }
+
+  .web-shell .app-header {
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+
+  .web-shell .web-heading {
+    width: 100%;
+  }
+
+  .web-shell .app-header h1 {
+    margin: 0;
+    font-size: 20px;
+  }
+
+  .web-shell .battle-status .section-kicker,
+  .web-shell .turn-manager .section-kicker {
+    display: none;
+  }
+
+  .web-shell .battle-status h2,
+  .web-shell .turn-manager h2 {
+    margin: 0;
+    font-size: 16px;
+  }
+
+  .web-shell .turn-manager__header {
+    align-items: center;
+  }
+
+  .web-shell .life-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .web-shell .life-counter,
+  .web-shell .battle-status,
+  .web-shell .turn-manager {
+    min-width: 0;
+    padding: 10px;
+    border-radius: 14px;
+  }
+
+  .web-shell .life-counter__header {
+    align-items: center;
+    gap: 6px;
+  }
+
+  .web-shell .life-counter__header > div {
+    min-width: 0;
+  }
+
+  .web-shell .life-counter .section-kicker {
+    display: none;
+  }
+
+  .web-shell .life-counter h2 {
+    margin: 0;
+    font-size: 14px;
+    overflow-wrap: anywhere;
+  }
+
+  .web-shell .life-counter__controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .web-shell .life-counter__value {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    padding-bottom: 4px;
+    font-size: clamp(42px, 12vw, 60px);
+  }
+
+  .web-shell .life-counter__controls > button {
+    width: 100%;
+    height: 44px;
+  }
+
+  .web-shell .match-grid {
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .web-shell .battle-status__header {
+    align-items: center;
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .web-shell .battle-status__current {
+    min-width: 0;
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  .web-shell .battle-status__options {
+    gap: 6px;
+    margin-top: 8px;
+    padding: 4px;
+  }
+
+  .web-shell .battle-status__options button {
+    padding-inline: 4px;
+  }
+
+  .web-shell .turn-manager__summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 8px;
+  }
+
+  .web-shell .turn-manager__number,
+  .web-shell .turn-manager__active {
+    min-width: 0;
+    min-height: 60px;
+    padding: 8px 10px;
+  }
+
+  .web-shell .turn-manager__number {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .web-shell .turn-manager__number output {
+    max-width: 100%;
+    font-size: 28px;
+    overflow-wrap: anywhere;
+  }
+
+  .web-shell .turn-manager__actions strong,
+  .web-shell .turn-manager__actions small {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .web-shell .turn-manager__action {
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    min-height: 80px;
+    padding: 8px 4px;
+    text-align: center;
+  }
+
+  .web-shell .turn-manager__actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .web-shell .turn-manager__action-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+  }
+
+  .web-shell .turn-manager__actions strong {
+    font-size: 11px;
+  }
+
+  .web-shell .turn-manager__next {
+    min-height: 44px;
+    margin-top: 10px;
+  }
+}
+
+.web-shell {
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  min-height: 100svh;
+}
+
+@media (min-width: 621px) {
+  .web-shell {
+    padding: calc(24px + var(--safe-area-top)) calc(24px + var(--safe-area-right))
+      calc(24px + var(--safe-area-bottom)) calc(24px + var(--safe-area-left));
+  }
+}
+
+.web-shell button {
+  min-width: 44px;
+  min-height: 44px;
+  touch-action: manipulation;
+}
+
+.web-shell .icon-button {
+  width: 44px;
+  height: 44px;
 }
 
 .web-error {
@@ -44,4 +288,11 @@
   color: inherit;
   background: #22131d;
   cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .web-shell button {
+    transition: none;
+    transform: none;
+  }
 }

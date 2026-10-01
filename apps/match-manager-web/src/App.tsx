@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { CircleCheck, LoaderCircle, TriangleAlert } from 'lucide-react';
 import {
   LifeCounter,
   BattleStatus,
@@ -8,6 +9,7 @@ import {
 } from '@wuwatcg/match-ui';
 import type { ApiBattleStatus, ApiTurnAction } from '@wuwatcg/match-ui/contracts';
 import { useMatchStore } from './matchStore';
+import { InfoTooltip } from './InfoTooltip';
 import '@wuwatcg/match-ui/styles.css';
 import './web.css';
 
@@ -34,6 +36,7 @@ const actionToAPI: Record<TurnAction, ApiTurnAction> = {
 
 export function App() {
   const { match, canUndo, pending, error, initialize, dispatch } = useMatchStore();
+  const saveLabel = error ? '保存に失敗' : pending > 0 ? '保存中…' : 'この端末に保存済み';
   useEffect(() => {
     void initialize();
   }, [initialize]);
@@ -41,9 +44,28 @@ export function App() {
     <main className="app-shell web-shell">
       <div className="control-panel">
         <header className="app-header">
-          <div>
-            <p className="eyebrow">WUTHERING WAVES TCG</p>
+          <div className="web-heading">
             <h1>対戦コントロール</h1>
+            <div className="web-heading__indicators">
+              {match && (
+                <span
+                  className={`web-save-status${pending > 0 && !error ? ' is-saving' : ''}${error ? ' is-error' : ''}`}
+                  role="status"
+                  aria-label="保存状況"
+                  title={saveLabel}
+                >
+                  {error ? (
+                    <TriangleAlert aria-hidden="true" size={20} />
+                  ) : pending > 0 ? (
+                    <LoaderCircle aria-hidden="true" size={20} />
+                  ) : (
+                    <CircleCheck aria-hidden="true" size={20} />
+                  )}
+                  <span className="visually-hidden">{saveLabel}</span>
+                </span>
+              )}
+              <InfoTooltip />
+            </div>
           </div>
           <div className="app-header__actions">
             <button
@@ -66,14 +88,6 @@ export function App() {
             </button>
           </div>
         </header>
-        <p className="web-notice">
-          対戦状態はこの端末に保存されます。ブラウザのデータを削除すると消去されます。
-        </p>
-        {match && (
-          <p className="web-notice" role="status" aria-label="保存状況">
-            {pending > 0 ? '保存中…' : 'この端末に保存済み'}
-          </p>
-        )}
         {error && (
           <div role="alert" className="web-error">
             {error}
@@ -109,6 +123,7 @@ export function App() {
                 }
               />
               <TurnManager
+                compact
                 turn={match.turn.number}
                 activePlayer={match.turn.activePlayer === 'player_one' ? 1 : 2}
                 usedActions={new Set(match.turn.usedActions.map((action) => actionToUI[action]))}

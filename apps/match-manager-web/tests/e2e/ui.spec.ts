@@ -67,7 +67,7 @@ test('a failed rapid tap remains visible while already queued later taps commit'
     for (let index = 0; index < 3; index++) button.click();
   });
   await expect(page.getByLabel('PLAYER 1の現在ライフ')).toHaveText('22');
-  await expect(page.getByRole('status', { name: '保存状況' })).toHaveText('この端末に保存済み');
+  await expect(page.getByRole('status', { name: '保存状況' })).toHaveText('保存に失敗');
   await expect(page.getByRole('alert')).toContainText('空き容量が不足');
   await page.getByRole('button', { name: 'PLAYER 1のライフを1増やす' }).click();
   await expect(page.getByLabel('PLAYER 1の現在ライフ')).toHaveText('23');
