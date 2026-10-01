@@ -110,9 +110,11 @@
     transform 140ms ease;
 }
 
-.turn-manager__next:hover {
-  filter: brightness(1.12);
-  transform: translateY(-1px);
+@media (hover: hover) and (pointer: fine) {
+  .turn-manager__next:hover {
+    filter: brightness(1.12);
+    transform: translateY(-1px);
+  }
 }
 
 .turn-manager__actions {
@@ -133,6 +135,7 @@
   border-radius: 14px;
   color: var(--color-text);
   background: color-mix(in srgb, var(--color-surface) 64%, black);
+  -webkit-tap-highlight-color: transparent;
   cursor: pointer;
   text-align: left;
   transition:
@@ -144,9 +147,11 @@
   cursor: default;
 }
 
-.turn-manager__actions > button:hover {
-  border-color: var(--color-turn-accent);
-  background: #151a30;
+@media (hover: hover) and (pointer: fine) {
+  .turn-manager__actions > button:where(:hover) {
+    border-color: var(--color-turn-accent);
+    background: #151a30;
+  }
 }
 
 .turn-manager__action.is-used {
