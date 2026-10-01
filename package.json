@@ -7,6 +7,7 @@
     "pnpm": ">=11 <12"
   },
   "scripts": {
+    "match-ui:check": "pnpm --filter @wuwatcg/match-ui check",
     "match-core:wasm": "node scripts/build-match-wasm.mjs",
     "match-manager-web:dev": "pnpm match-core:wasm && pnpm --filter @wuwatcg/match-manager-web dev",
     "match-manager-web:build": "pnpm match-core:wasm && pnpm --filter @wuwatcg/match-manager-web build",

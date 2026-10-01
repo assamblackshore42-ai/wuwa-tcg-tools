@@ -22,3 +22,26 @@
     flex-wrap: wrap;
   }
 }
+
+.web-error {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid rgb(255 111 133 / 35%);
+  border-radius: 10px;
+  color: #ff9cac;
+  background: rgb(112 27 43 / 22%);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.web-error button {
+  display: block;
+  margin-top: 10px;
+  padding: 8px 16px;
+  border: 1px solid #a34d5a;
+  border-radius: 8px;
+  color: inherit;
+  background: #22131d;
+  cursor: pointer;
+}

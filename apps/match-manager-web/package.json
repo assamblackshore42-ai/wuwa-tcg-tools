@@ -16,6 +16,7 @@
     "test:preview": "playwright test --config playwright.preview.config.ts"
   },
   "dependencies": {
+    "@wuwatcg/match-ui": "workspace:*",
     "dexie": "4.4.6",
     "lucide-react": "^1.48.0",
     "react": "^19.3.0",

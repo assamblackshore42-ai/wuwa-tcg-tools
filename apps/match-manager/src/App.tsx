@@ -7,10 +7,17 @@ import {
   type ApiTurnAction,
   type MatchCommand,
 } from './api/matchApi';
-import { BattleStatus, type BattleStatusValue } from './components/BattleStatus';
-import { LifeCounter } from './components/LifeCounter';
-import { TurnManager, type ActivePlayer, type TurnAction } from './components/TurnManager';
+import {
+  BattleStatus,
+  LifeCounter,
+  TurnManager,
+  type BattleStatusValue,
+  type ActivePlayer,
+  type TurnAction,
+} from '@wuwatcg/match-ui';
+
 import { useMatchStore, type ConnectionStatus } from './store/matchStore';
+import '@wuwatcg/match-ui/styles.css';
 import './styles.css';
 
 const BATTLE_STATUS_TO_UI: Record<ApiBattleStatus, BattleStatusValue> = {

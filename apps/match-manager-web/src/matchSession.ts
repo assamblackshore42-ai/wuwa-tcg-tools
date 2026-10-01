@@ -1,5 +1,5 @@
 import { liveQuery } from 'dexie';
-import type { MatchCommand, MatchState } from '../../match-manager/src/api/matchApi';
+import type { MatchCommand, MatchState } from '@wuwatcg/match-ui/contracts';
 import { loadWasm } from './wasmApi';
 import {
   DATA_FORMAT_VERSION,

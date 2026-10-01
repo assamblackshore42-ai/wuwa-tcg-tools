@@ -1,13 +1,14 @@
 import { useEffect } from 'react';
-import { LifeCounter } from '../../match-manager/src/components/LifeCounter';
 import {
+  LifeCounter,
   BattleStatus,
+  TurnManager,
   type BattleStatusValue,
-} from '../../match-manager/src/components/BattleStatus';
-import { TurnManager, type TurnAction } from '../../match-manager/src/components/TurnManager';
-import type { ApiBattleStatus, ApiTurnAction } from '../../match-manager/src/api/matchApi';
+  type TurnAction,
+} from '@wuwatcg/match-ui';
+import type { ApiBattleStatus, ApiTurnAction } from '@wuwatcg/match-ui/contracts';
 import { useMatchStore } from './matchStore';
-import '../../match-manager/src/styles.css';
+import '@wuwatcg/match-ui/styles.css';
 import './web.css';
 
 const battleToUI: Record<ApiBattleStatus, BattleStatusValue> = {
@@ -74,7 +75,7 @@ export function App() {
           </p>
         )}
         {error && (
-          <div role="alert" className="connection-error">
+          <div role="alert" className="web-error">
             {error}
             {!match && (
               <button type="button" onClick={() => void initialize()}>
