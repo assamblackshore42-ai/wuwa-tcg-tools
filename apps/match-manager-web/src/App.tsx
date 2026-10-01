@@ -45,7 +45,7 @@ export function App() {
       <div className="control-panel">
         <header className="app-header">
           <div className="web-heading">
-            <h1>対戦コントロール</h1>
+            <h1>鳴潮対決カウンター</h1>
             <div className="web-heading__indicators">
               {match && (
                 <span

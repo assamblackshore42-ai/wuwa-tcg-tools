@@ -66,7 +66,7 @@ for (const width of [320, 390, 430]) {
       await expect(page.getByRole('tooltip')).toContainText('ブラウザのデータを削除すると消去');
       await expect(info).toHaveAttribute('aria-expanded', 'true');
       expect(await page.getByRole('button', { name: 'ターン終了' }).boundingBox()).toEqual(before);
-      await page.getByRole('heading', { name: '対戦コントロール' }).tap();
+      await page.getByRole('heading', { name: '鳴潮対決カウンター' }).tap();
       await expect(page.getByRole('tooltip')).toHaveCount(0);
       await info.tap();
       await expect(page.getByRole('tooltip')).toBeVisible();
