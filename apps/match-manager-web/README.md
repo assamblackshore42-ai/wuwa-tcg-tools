@@ -99,8 +99,8 @@ pnpm --filter @wuwatcg/match-manager-web preview
 `.github/workflows/match-manager-web-release.yml` の **Match manager Web release** を手動実行し、Cloudflare Workers Static Assetsへ公開します。
 公開先はリポジトリ直下の `wrangler.jsonc` にある `wuwa-tcg-match-manager-web` です。
 
-
 ### リリースする
+
 Github Actionの手動リリースです。
 
 1. GitHubリポジトリの **Actions** を開きます。

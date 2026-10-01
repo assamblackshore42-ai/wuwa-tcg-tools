@@ -10,13 +10,7 @@ type LifeCounterProps = {
   readOnly?: boolean;
 };
 
-export function LifeCounter({
-  label,
-  life,
-  onAdjust,
-  tone,
-  readOnly = false,
-}: LifeCounterProps) {
+export function LifeCounter({ label, life, onAdjust, tone, readOnly = false }: LifeCounterProps) {
   return (
     <section
       className={`life-counter life-counter--${tone}${readOnly ? ' life-counter--readonly' : ''}`}
