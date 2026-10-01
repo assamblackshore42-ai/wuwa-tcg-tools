@@ -75,12 +75,6 @@ export function TurnManager({
           <span>現在の手番</span>
           <strong>PLAYER {activePlayer}</strong>
         </div>
-        {!readOnly && (
-          <button className="turn-manager__next" type="button" onClick={onNextTurn}>
-            ターン終了
-            <ChevronRight aria-hidden="true" />
-          </button>
-        )}
       </div>
 
       <div className="turn-manager__actions" aria-label="ターン内行動">
@@ -117,6 +111,12 @@ export function TurnManager({
           );
         })}
       </div>
+      {!readOnly && (
+        <button className="turn-manager__next" type="button" onClick={onNextTurn}>
+          ターン終了
+          <ChevronRight aria-hidden="true" />
+        </button>
+      )}
     </section>
   );
 }
