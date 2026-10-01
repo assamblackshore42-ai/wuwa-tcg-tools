@@ -149,7 +149,6 @@ export function App() {
                   onAdjust={(amount) =>
                     dispatch({ type: 'adjust_life', player: player.id, amount })
                   }
-                  onReset={() => dispatch({ type: 'reset_life', player: player.id })}
                   tone={index === 0 ? 'cyan' : 'magenta'}
                   readOnly={isOverlay}
                 />
