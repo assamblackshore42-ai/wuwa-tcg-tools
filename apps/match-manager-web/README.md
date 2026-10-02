@@ -1,4 +1,4 @@
-# Match Manager Web（工程5のPWA登録・更新まで実装）
+# Match Manager Web
 
 Rustの共有対戦コアを実際のWebAssemblyとして読み込み、ライフ・戦況・ターン、Undo、対戦リセットを操作するWeb画面です。
 PC側のAPI、WebSocket、OBSには接続しません。
@@ -16,6 +16,7 @@ PC側のAPI、WebSocket、OBSには接続しません。
 調整APIが使えない環境では更新ボタンからの適用を中止し、すべてのタブを閉じて開き直す方法を案内します。
 DBスキーマと保存形式は変更していません。
 Android/iPhoneでのインストールとオフライン起動の実機確認は未実施です。
+Cloudflare用のキャッシュヘッダーと公開手順も実装済みです。
 
 ## スマートフォンの操作画面
 
@@ -167,11 +168,27 @@ Android/iPhoneでホーム画面へ追加し、「オフラインで利用でき
 - `src/matchSession.ts`: IndexedDB保存アダプター。計算をWasmへ委譲し、保存トランザクション・操作キュー・更新通知を扱う。
 - `src/matchStore.ts`: Zustandで画面状態、起動、エラーを管理する。
 - `src/App.tsx`: 共有UIを利用し、Webの保存状況・エラー・操作を扱う。
+- `src/pwa.ts`: Service Worker登録、更新検出、保存確認後の更新適用。
+- `src/pwaStore.ts`、`src/PwaStatus.tsx`: オフライン準備・更新・登録エラーの状態と通知。
+- `src/updateCoordinator.ts`: Web LocksとBroadcastChannelによる複数タブの更新調整。
 - `public/_headers`: Cloudflare配信用のHTTPキャッシュ設定。
 - `packages/match-ui`: DesktopとWebで共有するライフ・戦況・ターンのコンポーネントとテーマ、JSON契約のTypeScript型。
 - `tests/e2e`: 実際のブラウザでWasmとUIを検証する。
 
 状態型は共有パッケージの純粋な型を参照します。Desktopとの動作一致は保証せず、Webの永続化E2Eと配布ビルドのテストで検証します。
 revisionがJavaScriptの安全な整数範囲を超える状態と、その範囲を超える更新はラッパーが拒否します。
+
+### PWAアイコンを再生成する
+
+元画像はDesktop用の `apps/match-manager/assets/battle-icon-transparent.png`（512×512）です。
+ルートで次のコマンドを実行すると、Webの `public/` に192px・512px・Maskable用512px・Apple用180pxのアイコンを生成します。
+Maskable用とApple用には背景色と余白を付けます。既存のfaviconと256pxの `app-icon.png` はこのスクリプトの対象外です。
+
+```powershell
+./scripts/generate-match-manager-web-icons.ps1
+```
+
+このスクリプトはWindowsのPowerShellとSystem.Drawingを使います。生成画像はGitに含め、通常のビルドやリリースで再生成する必要はありません。
+技術選定と検証履歴は[設計記録](../../docs/decisions/0001-match-manager-pwa.md)を参照してください。
 
 自作部分は[MITライセンス](LICENSE)です。第三者ライセンスは[表記](../../THIRD_PARTY_NOTICES.md)を参照してください。

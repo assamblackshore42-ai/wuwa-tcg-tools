@@ -1,8 +1,9 @@
 # Match Manager PWAの技術スタックとホスティング
 
 - 決定日: 2026-10-01
-- 状態: 採用（工程1〜4を実装、PWA化・公開は未着手）
-- 開発ブランチ: `codex/match-manager-pwa-architecture`
+- 状態: 採用（共有コア・UI・永続化・PWA・配信設定を実装。公開環境とAndroid/iPhone実機での検証は未確認）
+- 最終更新: 2026-10-02
+- 初期開発ブランチ: `codex/match-manager-pwa-architecture`
 
 ## 目的と初期スコープ
 
@@ -30,7 +31,8 @@ DesktopとWebは同じ対戦ルールを使用し、保存先と実行環境を�
 | ホスティング     | Cloudflare Workers Static Assets                      | HTTPSで静的PWAを配信でき、対戦用バックエンドを必要としない           |
 
 Reactなど既存の依存バージョンは原則維持する。新規依存の具体的なバージョンは導入時に互換性を確認してロックする。
-特に既存Viteとのvite-plugin-pwaの互換性、Rustツールチェーンとwasm-pack/wasm-bindgenの組み合わせは、最初の実証ビルドで確認する。
+PWAには `vite-plugin-pwa` 1.3.0と `workbox-window` 7.4.1を固定して導入し、既存のVite 8.3.1で配布ビルドを確認した。
+Rust/Wasmは固定したwasm-pack 0.15.0とwasm-bindgen 0.2.129でビルドする。
 
 ## 共通コアの境界
 
@@ -46,9 +48,9 @@ flowchart TB
     hosting["Cloudflare Workers Static Assets"] -. "HTML・JS・CSS・Wasmの配信" .-> web
 ```
 
-既存の `apps/match-manager/src-tauri/src/match_state.rs` を切り出しの出発点とする。
-ここには初期ライフ、ライフの範囲、戦況、ターン進行、アクションの状態遷移が既に実装されている。
-一方、Undoと直近50戦の履歴保持は現状 `match_store.rs` にあるため、状態遷移だけを切り出して共通化完了とはしない。
+共通コアの切り出しは、既存の `apps/match-manager/src-tauri/src/match_state.rs` を出発点とした。
+ここにあった初期ライフ、ライフの範囲、戦況、ターン進行、アクションの状態遷移を共有Rustコアへ移した。
+当初 `match_store.rs` にあったUndoと直近50戦の履歴保持も、共通コアの計算と各環境の保存アダプターに分けた。
 
 共通コアには次を置く。
 
@@ -83,7 +85,7 @@ Wasmには追加のビルド工程、初期化、キャッシュ管理が必要�
 今回の採用理由は計算速度ではなく、既存のRust実装を共通利用できることにある。
 最初に小さな実証で、iPhone/Androidでの読込・操作・オフライン起動とビルド手順を確認する。
 
-## ディレクトリ構成（実装時の予定）
+## ディレクトリ構成
 
 ```text
 crates/
@@ -100,9 +102,9 @@ apps/
 DesktopのOBS URL、接続ステータスと、Webのオフライン準備・更新通知は各アプリの画面で扱う。
 Webは既存の `127.0.0.1:38471` のAPIやWebSocketを呼ばない。
 
-実装時にpnpm workspaceへ `packages/*` を追加し、Rust workspaceの範囲を決める。
-既存のDesktopのビルド、リリース、ライセンス表記が維持されることも確認する。
-共有部分とWebのライセンス表記は、切り出し時に対象ディレクトリを明記する。
+pnpm workspaceに `apps/*` と `packages/*` を含め、共有RustコアとWasmラッパーは `crates/Cargo.toml` のworkspaceで管理する。
+DesktopのCargoプロジェクトとリリースは独立して維持する。
+共有部分とWebの自作コードには各ディレクトリのMITライセンスを適用する。
 
 ## オフライン・保存・更新
 
@@ -112,7 +114,12 @@ JS/CSSだけでなくWasm、アイコンなど起動に必要な資産をすべ�
 オフライン準備完了を表示し、それ以前の初回アクセスには通信が必要であることが分かるようにする。
 
 更新方式は `registerType: 'prompt'` とし、対戦中に自動再読み込みしない。
-更新を適用する前に保存処理の完了を待ち、DBのマイグレーションと旧キャッシュの整理を行う。
+「更新する」を押すと新規操作を停止し、受付済みの保存キューと画面への保存結果反映を待つ。
+保存エラーがある場合は更新を中止し、対戦操作へ戻る。
+Web LocksとBroadcastChannelで同じオリジンのタブを調整し、すべてのタブの保存完了後に新Service Workerを有効化して再読み込みする。
+応答しないタブがある場合は15秒で更新準備を中止する。調整APIが使えない場合は更新ボタンからの適用を中止し、すべてのタブを閉じて開き直す方法を案内する。
+旧プリキャッシュはWorkboxで整理する。現在のDBスキーマと保存形式はバージョン1のままで、今回のPWA対応ではマイグレーションを追加していない。
+将来保存形式を変更する際は、旧版からのマイグレーションと複数タブの互換性を別途検証する。
 データが復元できない場合に、無言で初期状態へ上書きしない。
 DBにはスキーマとコアのデータ形式のバージョンを持たせ、将来の更新を検証可能にする。
 
@@ -137,22 +144,25 @@ Workerスクリプト実行、ビルドサービス、独自ドメイン取得�
 | GitHub Pages                     | 配信は可能。公開サイト1GB、月100GBのソフトな帯域上限があり、PWA用の配信ヘッダーを設定できるCloudflareを優先する |
 
 初回公開にはCloudflareアカウント、配布先の作成、GitHub Actions用のAPIトークンが必要になる。
-配布先の予定名は `wuwa-tcg-match-manager-web`。名前の利用可否と実際のURLは配布先作成時に確認する。
+配布先の設定名は `wrangler.jsonc` の `wuwa-tcg-match-manager-web`。実際の公開URLはGitHub ActionsのDeployログまたはSummaryで確認する。
 最初はHTTPSの `workers.dev` を利用できる。独自ドメインを使う場合は初回公開前に決める。
-この決定ではアカウント作成、リソース作成、公開、ドメイン取得は実施していない。
+設定ファイルの実装と本番公開の確認は区別する。本書には公開環境でのヘッダー・インストール・オフライン起動の確認結果をまだ記録していない。
 
 ### 配布手順の方針
 
 1. GitHub Actionsで既存の固定Node/pnpm/Rustツールチェーンを用意する。
 2. `wasm32-unknown-unknown` ターゲットを追加し、固定したwasm-packで `--target web` のバインディングを生成する。
-3. 共通コア、Web、Desktopの関連チェックを実行し、Webをビルドする。
+3. 共通コア、共有UI、Webのチェックと永続化E2E・配布ビルドのテストを実行する。WebリリースにはDesktop/Tauriのビルドを含めない。
 4. Wasmを含む `apps/match-manager-web/dist` をWranglerで配布する。
 5. 本番配布は手動起動から始める。プレビュー配布は本番と別のオリジンで検証する。
 
 Cloudflareで再ビルドせず、CIで検証した成果物をアップロードする。
-HTML、Service Worker、Manifestには更新を確認できるキャッシュ設定を行い、ハッシュ付き資産は長期キャッシュする。
+`apps/match-manager-web/public/_headers` はビルド時に `dist/_headers` へコピーされる。
+HTML、Service Worker、Manifestは `Cache-Control: no-cache`、`/assets/*` のハッシュ付き資産は `public, max-age=31536000, immutable` とする。
+Vite previewはこのCloudflare用ヘッダー設定を適用しないため、公開後に実際のレスポンスを確認する。
 WasmのContent-Type、Service Workerのscope、HTTPSでのインストールとオフライン起動を配布後に確認する。
-初期画面は単一URLとし、存在しないJS/Wasmへの要求にHTMLを返す過剰なSPAフォールバックは避ける。
+初期画面は単一URLとし、`wrangler.jsonc` の `not_found_handling: "none"` で存在しないJS/WasmにHTMLを返さない。
+公開・確認の手順は[Web版README](../../apps/match-manager-web/README.md#github-actionsから公開する)を参照する。
 
 ## 実装順と完了条件
 
@@ -163,14 +173,16 @@ WasmのContent-Type、Service Workerのscope、HTTPSでのインストールと�
 5. PWAのキャッシュと更新通知を追加し、初回キャッシュ後の機内モード・再起動・更新後の状態復元を確認する。
 6. GitHub ActionsとWranglerを設定し、本番URLを固定して公開する。
 
-PlaywrightのChromium/WebKitに加え、Android ChromeとiPhone Safari・ホーム画面起動で実機確認する。
+現在のブラウザ自動検証はPlaywrightとMicrosoft Edgeで行っている。
+PlaywrightのWebKit、Android ChromeとiPhone Safari・ホーム画面起動での確認は今後の検証項目とする。
 ブラウザの模擬モバイル表示だけをもって、iOSのPWA動作を確認済みとはしない。
 工程1では `crates/match-core/` を実装し、Desktopからpath依存で利用する。
 共有crateは `crates/Cargo.toml` のworkspaceで管理し、DesktopのCargoプロジェクト、lockfile、targetパス、release profileは維持する。
 工程2では `crates/match-core-wasm/` と `apps/match-manager-web/` を実装する。
 WasmラッパーはJSON契約とrevisionの安全な整数範囲を検証し、Webのメモリアダプターが履歴を管理する。
 DesktopのSQLiteアダプターで生成した239コマンドの操作列と、ブラウザ内で動作するWasmの各状態を比較する。
-工程2時点のDesktop UI直接参照は工程4で共有UIパッケージへ置き換えた。工程5以降とAndroid/iPhoneの実機検証は未着手。
+工程2時点のDesktop UI直接参照は工程4で共有UIパッケージへ置き換えた。
+PWAと配信設定の実装・ローカル検証の結果は下記の2026-10-02の記録を参照する。Android/iPhoneの実機検証は未実施。
 
 工程2の検証結果: Rustの32テスト、Clippy、フォーマット・Webの型検査とLintを通過。
 Edgeで239操作のDesktop/Web状態一致とWebの4テストを確認し、静的配布ビルドでも2テストを通過した。
@@ -207,6 +219,23 @@ WebではDesktopとの動作一致を保証しない。通常のCIとWebリリ�
 DesktopのSQLiteから比較データを生成するテストと生成コマンドを削除し、Webの検証からDesktop/Tauriのビルド依存を外す。
 Wasmの不正入力拒否、IndexedDBの保存・復元・同時更新・ロールバック、操作画面とモバイル表示のテストは継続する。
 上記のDesktop/Web比較結果は、方針変更前の各工程で実施した検証の記録として残す。
+
+### 2026-10-02: PWAと配信設定を実装する
+
+Viteの `generateSW` でManifestとService Workerを生成し、HTML、JS、CSS、Wasm、アイコンをプリキャッシュする。
+Manifestのid・start_url・scopeは `/`、表示モードは `standalone` とする。
+既存のDesktop用512pxアイコンから192px・512px・Maskable用・Apple用の画像を用意した。
+Service Worker登録はReactのStrictModeの外で一度だけ行い、開発サーバーでは無効にする。
+保存状況とオフライン準備完了を別のアイコンで表示し、更新検出と登録失敗は通知する。
+保存完了を待つ更新処理、複数タブの調整、保存エラー時の中止と操作再開、15秒の待機タイムアウトを実装した。
+
+検証結果: Edgeの開発サーバー向け23テストと配布ビルド向け21テスト、Webのフォーマット・Lint・型検査・配布ビルドが通過した。
+通信を切った状態での再読み込みと対戦復元、版Aから版Bへの更新、保存中の操作停止、更新後のUndo復元、別タブの保存待ち・保存失敗・応答待ちタイムアウトを確認した。
+更新テストは同じアプリ資産を使い、HTMLとService Workerのプリキャッシュrevisionを切り替えるローカル配信で行った。将来のDB形式変更を検証したものではない。
+
+GitHub Actionsの手動リリースとWranglerの静的配信設定は実装済み。
+Cloudflare用の `_headers` がビルド成果物へ完全一致でコピーされ、Service Workerのプリキャッシュ対象に入らないことを確認した。
+Cloudflareでの実レスポンスとAndroid/iPhoneのホーム画面追加・機内モード再起動は未確認であり、ローカルのEdge検証と区別する。
 
 ## 参照資料
 

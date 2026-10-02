@@ -6,11 +6,14 @@
 
 ## 対戦管理ツール / Match Manager
 プレイヤー二人のライフ・戦況・ターンの管理ができるWindowsデスクトップアプリです。
+
 配信や録画で対戦状況を表示したい場合は、追加機能のOBSオーバーレイを利用できます。
 
-[Web版](apps/match-manager-web/README.md)では、Wasmの共有コアで対戦を操作し、IndexedDBに状態と履歴を保存・復元できます。PWAのインストール・オフライン対応は後続工程です。
+[Web版](apps/match-manager-web/README.md)では、Wasmの共有コアで対戦を操作し、IndexedDBに状態と履歴を保存・復元できます。
+
+PWA(Progressive Web Application)に対応しています。
+
 DesktopとWebは[共有React UI](packages/match-ui/README.md)を利用します。Webはスマホの縦画面・タッチ操作・セーフエリアに対応しています。
-スマートフォン版はPWA対応を開発中
 
 ## 鳴潮：対決 リモート対戦アシスタント
 「鳴潮：対決」のリモート対戦をアシストするWindowsデスクトップアプリです。
