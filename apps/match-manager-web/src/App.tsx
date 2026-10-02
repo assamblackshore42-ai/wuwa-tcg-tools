@@ -10,6 +10,7 @@ import {
 import type { ApiBattleStatus, ApiTurnAction } from '@wuwatcg/match-ui/contracts';
 import { useMatchStore } from './matchStore';
 import { InfoTooltip } from './InfoTooltip';
+import { PwaNotice, PwaStatus } from './PwaStatus';
 import '@wuwatcg/match-ui/styles.css';
 import './web.css';
 
@@ -64,6 +65,7 @@ export function App() {
                   <span className="visually-hidden">{saveLabel}</span>
                 </span>
               )}
+              <PwaStatus />
               <InfoTooltip />
             </div>
           </div>
@@ -88,6 +90,7 @@ export function App() {
             </button>
           </div>
         </header>
+        <PwaNotice />
         {error && (
           <div role="alert" className="web-error">
             {error}

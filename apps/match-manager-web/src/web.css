@@ -21,9 +21,27 @@
   justify-content: space-between;
 }
 
-.web-save-status {
+.web-save-status,
+.web-pwa-status {
   display: inline-flex;
   color: var(--color-used);
+}
+
+.web-pwa-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border: 1px solid #39465a;
+  border-radius: 10px;
+  color: #c7d1df;
+  background: #172232;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 
 .web-save-status.is-saving {
@@ -57,6 +75,7 @@
   opacity: 0.45;
   cursor: default;
 }
+
 .web-shell .header-action-button {
   min-height: 44px;
 }
