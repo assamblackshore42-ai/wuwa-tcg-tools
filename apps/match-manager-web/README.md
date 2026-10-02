@@ -71,6 +71,12 @@ pnpm match-manager-web:dev
 pnpm --filter @wuwatcg/match-manager-web dev --host 0.0.0.0
 ```
 
+LAN IPの通常HTTP接続は画面・タッチ操作の確認用です。
+開発サーバーではService Workerを登録せず、スマホのLAN IPへのHTTP接続ではPWAのインストール・オフライン動作を確認できません。
+スマホでのPWA確認には、配布ビルドを公開したHTTPSのURLを使います。
+PCでは `http://127.0.0.1:1422` のpreviewでService Workerを検証できます。
+PWAの接続要件は[MDNのインストール要件](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable)を参照してください。
+
 ビルドスクリプトは `.tools/wasm-pack/bin` を優先し、なければPATH上のwasm-packを使います。
 バージョン違いはエラーにします。初回Wasmビルド時にはバインディング生成ツールの取得が必要です。
 生成される `crates/match-core-wasm/pkg/` はGitに含めず、開発・検証・配布時に再生成します。
@@ -120,6 +126,40 @@ Github Actionの手動リリースです。
 4. **Run workflow** を押します。選択したブランチのコードが検証・ビルドされ、成功すると本番URLの内容が更新されます。
 5. `release` が成功したら、実行のSummaryまたはDeployステップのログに表示される公開URLを確認します
 
+### 配信時のキャッシュとPWA確認
+
+`public/_headers` はViteのビルド時に `dist/_headers` へコピーされ、Cloudflare Workers Static Assetsの配信ヘッダーを設定します。
+ルールの書式と適用方法は[Cloudflareの公式資料](https://developers.cloudflare.com/workers/static-assets/headers/)を参照してください。
+
+| 対象                    | Cache-Control                         | 目的                                         |
+| ----------------------- | ------------------------------------- | -------------------------------------------- |
+| `/`、`/index.html`      | `no-cache`                            | HTMLの更新を毎回再検証する                   |
+| `/sw.js`                | `no-cache`                            | Service Workerの更新を毎回再検証する         |
+| `/manifest.webmanifest` | `no-cache`                            | アプリ名・アイコンなどの更新を毎回再検証する |
+| `/assets/*`             | `public, max-age=31536000, immutable` | ハッシュ付きJS/CSS/Wasmを1年間キャッシュする |
+
+`no-cache` はHTTPキャッシュの再検証を要求する設定です。Service Workerに保存した資産によるオフライン起動は引き続き利用できます。
+`assets/` に置く長期キャッシュ対象は、内容が変わるとURLも変わるハッシュ付きファイルに限ります。
+Wasmの `Content-Type` はWranglerがファイル拡張子から設定します。公開後に `application/wasm` であることを確認します。
+`wrangler.jsonc` の `not_found_handling: "none"` により、存在しないJS/WasmにHTMLを返すSPAフォールバックは使いません。
+
+Vite previewはCloudflareの `_headers` を適用しません。previewでのブラウザテストと、Cloudflare配信時のヘッダー確認は別に行います。
+公開後、実際のHTTPS URLを指定してレスポンスを確認します。
+
+```powershell
+$releaseUrl = 'https://実際の公開ホスト名'
+curl.exe -I "$releaseUrl/"
+curl.exe -I "$releaseUrl/sw.js"
+curl.exe -I "$releaseUrl/manifest.webmanifest"
+```
+
+HTML・Manifest・Service Workerが取得でき、上表の `Cache-Control` が付くことを確認します。
+ブラウザのNetworkで実際に読み込まれた `/assets/*.wasm` のURLも確認し、`Content-Type: application/wasm` と長期キャッシュ設定を検証します。
+存在しない `/assets/does-not-exist.wasm` は404になることを確認します。
+ブラウザのApplication画面ではService Workerのscopeが公開URLの `/`、Manifestの表示モードが `standalone` であることを確認します。
+Android/iPhoneでホーム画面へ追加し、「オフラインで利用できます」を確認した後、機内モードで終了・再起動して対戦状態とUndoが復元されることを確認します。
+本番と異なるオリジンで試す場合、対戦の保存先も独立します。
+
 ## 構成
 
 - `crates/match-core-wasm`: JSON契約で初期状態、コマンド、Undo、履歴境界を返す薄いWasmラッパー。
@@ -127,6 +167,7 @@ Github Actionの手動リリースです。
 - `src/matchSession.ts`: IndexedDB保存アダプター。計算をWasmへ委譲し、保存トランザクション・操作キュー・更新通知を扱う。
 - `src/matchStore.ts`: Zustandで画面状態、起動、エラーを管理する。
 - `src/App.tsx`: 共有UIを利用し、Webの保存状況・エラー・操作を扱う。
+- `public/_headers`: Cloudflare配信用のHTTPキャッシュ設定。
 - `packages/match-ui`: DesktopとWebで共有するライフ・戦況・ターンのコンポーネントとテーマ、JSON契約のTypeScript型。
 - `tests/e2e`: 実際のブラウザでWasmとUIを検証する。
 
