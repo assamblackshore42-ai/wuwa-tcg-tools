@@ -4,6 +4,7 @@ type PwaStore = {
   offlineReady: boolean;
   needRefresh: boolean;
   updateDismissed: boolean;
+  applyingUpdate: boolean;
   error: string | null;
 };
 
@@ -11,5 +12,6 @@ export const usePwaStore = create<PwaStore>(() => ({
   offlineReady: false,
   needRefresh: false,
   updateDismissed: false,
+  applyingUpdate: false,
   error: null,
 }));

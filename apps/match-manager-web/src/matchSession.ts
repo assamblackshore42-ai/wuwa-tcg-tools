@@ -185,6 +185,10 @@ export class MatchSession {
     return result;
   }
 
+  whenIdle(): Promise<void> {
+    return this.queue;
+  }
+
   private async apply(command: MatchCommand): Promise<CommandResult> {
     const result = await this.database.transaction(
       'rw',

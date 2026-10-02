@@ -36,7 +36,7 @@ const actionToAPI: Record<TurnAction, ApiTurnAction> = {
 };
 
 export function App() {
-  const { match, canUndo, pending, error, initialize, dispatch } = useMatchStore();
+  const { match, canUndo, pending, error, updating, initialize, dispatch } = useMatchStore();
   const saveLabel = error ? '保存に失敗' : pending > 0 ? '保存中…' : 'この端末に保存済み';
   useEffect(() => {
     void initialize();
@@ -73,7 +73,7 @@ export function App() {
             <button
               type="button"
               className="header-action-button"
-              disabled={!match}
+              disabled={!match || updating}
               onClick={() => {
                 if (window.confirm('新しい対戦を開始しますか？')) dispatch({ type: 'reset_match' });
               }}
@@ -83,7 +83,7 @@ export function App() {
             <button
               type="button"
               className="header-action-button"
-              disabled={!canUndo}
+              disabled={!canUndo || updating}
               onClick={() => dispatch({ type: 'undo' })}
             >
               Undo
@@ -95,7 +95,7 @@ export function App() {
           <div role="alert" className="web-error">
             {error}
             {!match && (
-              <button type="button" onClick={() => void initialize()}>
+              <button type="button" disabled={updating} onClick={() => void initialize()}>
                 再試行
               </button>
             )}
@@ -104,7 +104,7 @@ export function App() {
         {!match ? (
           <p role="status">対戦画面を準備しています…</p>
         ) : (
-          <>
+          <fieldset className="web-match-controls" disabled={updating} aria-label="対戦操作">
             <div className="life-grid">
               {match.players.map((player, index) => (
                 <LifeCounter
@@ -137,7 +137,7 @@ export function App() {
                 onNextTurn={() => dispatch({ type: 'end_turn' })}
               />
             </div>
-          </>
+          </fieldset>
         )}
       </div>
     </main>

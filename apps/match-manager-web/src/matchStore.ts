@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { ensureTabLease } from './updateCoordinator';
 import {
   createMatchSession,
   type MatchCommand,
@@ -11,6 +12,9 @@ type Store = {
   canUndo: boolean;
   pending: number;
   error: string | null;
+  updating: boolean;
+  prepareUpdate: () => Promise<void>;
+  resumeAfterUpdate: () => void;
   initialize: () => Promise<void>;
   dispatch: (command: MatchCommand) => Promise<void>;
 };
@@ -27,14 +31,39 @@ function saveError(error: unknown): string {
   return `保存できませんでした。保存に失敗した操作は反映していません。${describeError(error)}`;
 }
 
-export const useMatchStore = create<Store>((set) => ({
+export const useMatchStore = create<Store>((set, get) => ({
   match: null,
   canUndo: false,
   pending: 0,
   error: null,
+  updating: false,
+  prepareUpdate: async () => {
+    const initialError = get().error;
+    const generation = failureGeneration;
+    set({ updating: true });
+    await initializing;
+    await session?.whenIdle();
+    if (get().pending > 0) {
+      await new Promise<void>((resolve) => {
+        const unsubscribe = useMatchStore.subscribe((state) => {
+          if (state.pending === 0) {
+            unsubscribe();
+            resolve();
+          }
+        });
+      });
+    }
+    if (!session || initialError || get().error || failureGeneration !== generation) {
+      throw new Error(
+        '保存エラーがあるため更新を中止しました。保存状況を確認してから再試行してください。',
+      );
+    }
+  },
+  resumeAfterUpdate: () => set({ updating: false }),
   initialize: () => {
     if (session) return Promise.resolve();
-    initializing ??= createMatchSession()
+    initializing ??= ensureTabLease()
+      .then(() => createMatchSession())
       .then((created) => {
         session = created;
         set({ match: created.state, canUndo: created.canUndo, error: null });
@@ -60,7 +89,7 @@ export const useMatchStore = create<Store>((set) => ({
     return initializing;
   },
   dispatch: async (command) => {
-    if (!session) return;
+    if (!session || get().updating) return;
     const generation = failureGeneration;
     set((current) => ({ pending: current.pending + 1 }));
     try {

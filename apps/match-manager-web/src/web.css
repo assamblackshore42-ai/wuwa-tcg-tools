@@ -76,6 +76,12 @@
   cursor: default;
 }
 
+.web-match-controls {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
 .web-shell .header-action-button {
   min-height: 44px;
 }

@@ -1,5 +1,6 @@
 import { CloudCheck } from 'lucide-react';
 import { usePwaStore } from './pwaStore';
+import { applyPwaUpdate } from './pwa';
 
 export function PwaStatus() {
   const offlineReady = usePwaStore((state) => state.offlineReady);
@@ -18,15 +19,26 @@ export function PwaStatus() {
 }
 
 export function PwaNotice() {
-  const { needRefresh, updateDismissed, error } = usePwaStore();
+  const { needRefresh, updateDismissed, applyingUpdate, error } = usePwaStore();
   return (
     <>
-      {needRefresh && !updateDismissed && (
+      {(applyingUpdate || (needRefresh && !updateDismissed)) && (
         <div className="web-pwa-notice" role="status" aria-label="アプリの更新">
-          <span>新しいバージョンがあります</span>
+          <span>
+            {applyingUpdate ? '保存完了を待って更新しています…' : '新しいバージョンがあります'}
+          </span>
           <button
             type="button"
             className="header-action-button"
+            disabled={applyingUpdate}
+            onClick={() => void applyPwaUpdate()}
+          >
+            更新する
+          </button>
+          <button
+            type="button"
+            className="header-action-button"
+            disabled={applyingUpdate}
             onClick={() => usePwaStore.setState({ updateDismissed: true })}
           >
             あとで
