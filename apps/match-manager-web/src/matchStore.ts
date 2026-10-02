@@ -77,8 +77,6 @@ export const useMatchStore = create<Store>((set, get) => ({
           },
           (error) => set({ error: `保存した対戦を読み込めませんでした。${describeError(error)}` }),
         );
-        // Best effort only; denial must not prevent normal IndexedDB saving.
-        void navigator.storage?.persist?.().catch(() => {});
       })
       .catch((error: unknown) => {
         set({ error: `起動できませんでした: ${describeError(error)}` });
