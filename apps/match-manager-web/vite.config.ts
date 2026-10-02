@@ -9,7 +9,7 @@ export default defineConfig({
       strategies: 'generateSW',
       registerType: 'prompt',
       injectRegister: false,
-      includeAssets: ['favicon.ico', 'app-icon.png'],
+      includeAssets: ['favicon.ico', 'app-icon.png', 'apple-touch-icon.png'],
       manifest: {
         id: '/',
         name: '鳴潮対決カウンター',
@@ -20,13 +20,24 @@ export default defineConfig({
         display: 'standalone',
         theme_color: '#070b12',
         background_color: '#070b12',
-        // Dedicated install icons will replace this existing icon in step 3.
         icons: [
           {
-            src: '/app-icon.png',
-            sizes: '256x256',
+            src: '/pwa-192x192.png',
+            sizes: '192x192',
             type: 'image/png',
             purpose: 'any',
+          },
+          {
+            src: '/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/pwa-maskable-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
           },
         ],
       },
