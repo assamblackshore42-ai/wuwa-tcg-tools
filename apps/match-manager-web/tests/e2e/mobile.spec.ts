@@ -63,7 +63,9 @@ for (const width of [320, 390, 430]) {
       await expect(page.getByRole('tooltip')).toHaveCount(0);
       const before = await page.getByRole('button', { name: 'ターン終了' }).boundingBox();
       await info.tap();
-      await expect(page.getByRole('tooltip')).toContainText('ブラウザのデータを削除すると消去');
+      await expect(page.getByRole('tooltip')).toContainText(
+        'ブラウザのデータ削除や空き容量不足などで失われる場合があります',
+      );
       await expect(info).toHaveAttribute('aria-expanded', 'true');
       expect(await page.getByRole('button', { name: 'ターン終了' }).boundingBox()).toEqual(before);
       await page.getByRole('heading', { name: '鳴潮対決カウンター' }).tap();
