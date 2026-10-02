@@ -1,5 +1,34 @@
 import { test, expect } from '@playwright/test';
 
+test('starts a usable fresh match after the database is deleted', async ({ page }) => {
+  await page.goto('/');
+  const result = await page.evaluate(async () => {
+    const path = '/src/matchSession.ts';
+    const { createMatchSession } = await import(path);
+    let session = await createMatchSession('deleted-storage');
+    const initial = session.state;
+    await session.dispatch({ type: 'adjust_life', player: 'player_one', amount: -3 });
+    await session.dispatch({ type: 'end_turn' });
+    session.close();
+    await session.database.delete();
+    session = await createMatchSession('deleted-storage');
+    const fresh = await session.snapshot();
+    const historyCount = await session.database.history.count();
+    const changed = await session.dispatch({
+      type: 'adjust_life',
+      player: 'player_one',
+      amount: -1,
+    });
+    const undo = await session.dispatch({ type: 'undo' });
+    session.close();
+    return { initial, fresh, historyCount, changed, undo };
+  });
+  expect(result.fresh).toEqual({ state: result.initial, canUndo: false });
+  expect(result.historyCount).toBe(0);
+  expect(result.changed.state.players[0].life).toBe(19);
+  expect(result.undo.state.players[0].life).toBe(20);
+});
+
 test('restores full match and Undo after closing and reopening IndexedDB', async ({ page }) => {
   await page.goto('/');
   const result = await page.evaluate(async () => {
