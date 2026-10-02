@@ -50,7 +50,7 @@ export function InfoTooltip() {
       </button>
       {open && (
         <div id="storage-info" role="tooltip" className="web-info__tooltip">
-          対戦状態はこの端末に保存されます。ブラウザのデータを削除すると消去されます。
+          対戦状態はこの端末に保存されます。ブラウザのデータ削除や空き容量不足などで失われる場合があります。
         </div>
       )}
     </div>
