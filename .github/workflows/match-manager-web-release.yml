@@ -49,7 +49,7 @@ jobs:
           pnpm match-ui:check
           pnpm match-manager-web:check
 
-      - name: Test Web persistence and Desktop parity
+      - name: Test Web persistence
         run: pnpm match-manager-web:e2e
 
       - name: Build and test release assets

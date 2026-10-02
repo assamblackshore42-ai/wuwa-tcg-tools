@@ -10,7 +10,7 @@ import '@wuwatcg/match-ui/styles.css';
 ```
 
 `@wuwatcg/match-ui/contracts` はRustのJSON契約に対応する純粋なTypeScript型を公開します。
-コアのルールはRustで実行し、型の一致はDesktop/Webの239操作比較テストで確認します。
+コアのルールはRustで実行します。DesktopとWebはそれぞれのテストで検証し、両者の動作一致は保証しません。
 共通テーマと基本レイアウトは `styles.css`、端末別レイアウトや接続表示は各アプリで管理します。
 
 このパッケージはソースを公開し、各アプリのViteでビルドします。

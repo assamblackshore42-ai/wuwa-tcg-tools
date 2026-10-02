@@ -77,14 +77,12 @@ pnpm match-manager-web:preview:test
 ```
 
 ブラウザ検証にはMicrosoft Edgeを使います。
-`match-manager-web:e2e` はDesktopのSQLiteアダプターで239コマンドの期待値を生成し、ブラウザ内で動くWasmとIndexedDBの各操作後の状態と比較します。途中でDBを閉じて再開する復元も含みます。
-すべてのコマンド種別、no-op、ライフ上下限、Undo、リセット、50戦を超えた履歴保持とUndoの下限を含みます。
+`match-manager-web:e2e` はブラウザ内で動くWasmとIndexedDBを使い、Webの操作と永続化を検証します。Desktopのビルドや比較データの生成は不要です。
 不正入力の拒否、Wasm読込失敗からの再試行、操作画面からPC APIへの接続がないことも確認します。
 保存・復元、100回の連続操作、複数タブからの同時更新、容量不足・Undo・履歴削除の失敗時ロールバック、破損データ・未対応形式の保護を実際のIndexedDBで検証します。
 
 `match-manager-web:preview:test` は配布ビルドを作り、Vite previewで操作画面を検証します。
 開発サーバーだけでなく、ハッシュ付きWasmが静的成果物から読み込めることを確認します。
-生成したDesktop期待値は `tests/generated/` に置き、Gitには含めません。
 
 ```powershell
 pnpm match-manager-web:build
@@ -119,7 +117,7 @@ Github Actionの手動リリースです。
 - `packages/match-ui`: DesktopとWebで共有するライフ・戦況・ターンのコンポーネントとテーマ、JSON契約のTypeScript型。
 - `tests/e2e`: 実際のブラウザでWasmとUIを検証する。
 
-状態型は共有パッケージの純粋な型を参照し、Rustとの一致は比較テストで確認します。
+状態型は共有パッケージの純粋な型を参照します。Desktopとの動作一致は保証せず、Webの永続化E2Eと配布ビルドのテストで検証します。
 revisionがJavaScriptの安全な整数範囲を超える状態と、その範囲を超える更新はラッパーが拒否します。
 
 自作部分は[MITライセンス](LICENSE)です。第三者ライセンスは[表記](../../THIRD_PARTY_NOTICES.md)を参照してください。

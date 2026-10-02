@@ -83,7 +83,7 @@ jobs:
       - name: Test Desktop persistence and API
         run: pnpm match-manager:rust:test
 
-      - name: Check Web and Desktop parity
+      - name: Check Web persistence and release assets
         run: |
           pnpm match-manager-web:check
           pnpm match-manager-web:e2e
